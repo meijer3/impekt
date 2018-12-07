@@ -39,6 +39,9 @@
   <ItemGroup>
     <Content Include="edit\impekt_edit.css" />
     <Content Include="edit\impekt_edit.html" />
+    <Content Include="index.html">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="View\impekt_view.css" />
     <Content Include="View\impekt_view.html" />
     <TypeScriptCompile Include="core\impekt_core.ts">
