@@ -1,0 +1,51 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+
+    <title>TypeScript Impekt View</title>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+    <script src="../core/impekt_core.js"></script>
+    <script src="../view/impekt_view.js"></script>
+    <script src="../edit/impekt_edit.js"></script>
+    <link rel="stylesheet" type="text/css" href="../core/impekt_core.css">
+    <link rel="stylesheet" type="text/css" href="../view/impekt_view.css">
+    <link rel="stylesheet" type="text/css" href="../edit/impekt_edit.css">
+
+
+</head>
+<body>
+    <header>
+        <div id="header-logo">
+            <svg viewBox="-100 -50 200 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet">
+                <path class="mainline" d="M 9,0 C -25,43 -50,27 -50,0 -50,-27 -25,-43 0,0 25,43 50,27 50,0 50,-27 25,-43 -9,0" stroke="#567ff8" stroke-width="4.5" fill="transparent" stroke-dasharray="149 32 149"></path>
+            </svg>
+            <div id="header-title">Impekt</div>
+        </div>
+        <div id="header-menu">menu</div>
+    </header>
+    <div id="header-placeholder"></div>
+
+
+    <div class="graph-container">
+        <h1 class="graph-title"><span id="graph-UI-title-main"></span><br><span id="graph-UI-title-sub"></span></h1>
+
+
+        <div class="graph-graph"><svg id="graph" width="200" height="200"></svg></div>
+    </div>
+    <div class="overlay">
+        
+    </div>
+
+
+    <footer>
+        <div id="footer-help">More Aware, Better Earth</div>
+        <div id="footer-contact">Please contact me if you want to help. Impekt 2018</div>
+    </footer>
+
+
+
+</body>
+</html>

@@ -7,6 +7,9 @@
     "name": ""
   },
   "devDependencies": {
-    "@types/node": "^8.0.14"
+    "@types/node": "^8.10.38"
+  },
+  "dependencies": {
+    "@types/d3": "^5.0.1"
   }
 }
