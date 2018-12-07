@@ -1,6 +1,7 @@
 class overlay {
     constructor() {
         this.el = d3.select('.overlay');
+        this.el.style('display', 'none');
         let background = this.el.append('div').attr('class', 'overlay-background');
         let container = this.el.append('div').attr('class', 'overlay-container');
         let close = container.append('div').attr('class', 'overlay-close').html('close');
@@ -68,14 +69,16 @@ class editUI extends UI {
         super(graph);
         this.editActive = false;
         this.overlay = new overlay();
-        this.addButton = (item, type, callback) => {
+        this.buttonEdit = (item, fieldname, type, callback) => {
             if (item.select('.edit-container').empty())
-                item.html("<span class='edit-container'>" + item.html() + "</span>");
-            item.append('span').attr('class', 'UI-edit').html('Edit')
-                .attr('data-type', type)
-                .on('click touch', (d, i, arr) => {
-                this.goEditer(arr[i], callback);
-            });
+                item.html("<span class='edit-container-fieldname'>" + fieldname + ": </span><span class='edit-container'>" + item.html() + "</span>");
+            if (type != editUI.editDivType.notAllowed) {
+                item.append('span').attr('class', 'UI-edit').html('Edit')
+                    .attr('data-type', type)
+                    .on('click touch', (d, i, arr) => {
+                    this.goEditer(arr[i], callback);
+                });
+            }
         };
     }
     databaseRequestLinks(search, divSuggestions, type) {
@@ -93,24 +96,22 @@ class editUI extends UI {
                     console.error(xhr);
                     throw new Error(xhr.responseText);
                 }
-                jsonData.map((vari) => {
+                jsonData.map((link) => {
                     let item = divSuggestions.append('div').attr('class', 'newItem-item-div');
-                    item.append('div').attr('class', 'newItem-long').html(vari.long_code_name);
-                    item.append('div').attr('class', 'newItem-short').html(vari.short_code_name);
-                    item.append('div').attr('class', 'newItem-desc').html(vari.desc);
-                    item.append('div').attr('class', 'newItem-tags').html(vari.tags);
-                    item.append('div').attr('class', 'newItem-group').html(vari.group);
-                    item.append('div').attr('class', 'newItem-subgroup').html(vari.sub_group);
+                    item.append('div').attr('class', 'newItem-long').html(link.long_code_name);
+                    item.append('div').attr('class', 'newItem-short').html(link.short_code_name);
+                    item.append('div').attr('class', 'newItem-desc').html(link.desc);
+                    item.append('div').attr('class', 'newItem-tags').html(link.tags);
+                    item.append('div').attr('class', 'newItem-group').html(link.group);
+                    item.append('div').attr('class', 'newItem-subgroup').html(link.sub_group);
                     if (type == graph.typeOfLink.subimpekt) {
                         item.on('click touch', () => {
-                            this.addImpekt();
-                            this.overlay.open(false);
+                            this.addNewSubImpekt(link.impact_id);
                         });
                     }
                     if (type == graph.typeOfLink.variable) {
                         item.on('click touch', () => {
-                            this.addVariable();
-                            this.overlay.open(false);
+                            this.addNewVariable(link.var_id);
                         });
                     }
                 });
@@ -128,11 +129,15 @@ class editUI extends UI {
         this.overlay.setTitle('Add new item');
         let overlay = this.overlay.body;
         let divPick = overlay.append('div').attr('class', 'newItem-pick-div');
-        let subimpekt = divPick.append('label').attr('class', 'newItem-pick-option1').html('subimpekt')
-            .append('input').attr('type', 'radio').attr('name', 'newItemPick').attr('value', graph.typeOfLink.subimpekt);
-        let variable = divPick.append('label').attr('class', 'newItem-pick-option1').html('variable')
-            .append('input').attr('type', 'radio').attr('name', 'newItemPick').attr('value', graph.typeOfLink.variable).property('checked', true);
-        let divInputSub = overlay.append('div').attr('class', 'newItem-input-div-sub');
+        let subimpekt = divPick.append('div');
+        subimpekt.append('input').attr('id', 'newItem-pick-option1').attr('type', 'radio').attr('name', 'newItemPick')
+            .attr('value', graph.typeOfLink.subimpekt)
+            .on('change', () => {
+            divInputSub.style('display', '');
+            divInputVari.style('display', 'none');
+        });
+        subimpekt.append('label').attr('for', 'newItem-pick-option1').html('subimpekt');
+        let divInputSub = overlay.append('div').attr('class', 'newItem-input-div newItem-input-div-sub').style('display', 'none');
         let inputSub = divInputSub.append('input').attr('class', 'newItem-input').attr('placeholder', 'Start typing...').attr('value', 'igh');
         inputSub.on('keyup paste copy cut', () => {
             let value = inputSub.property('value');
@@ -146,8 +151,16 @@ class editUI extends UI {
                 }, 400);
             }
         });
-        let divSuggestionsSub = overlay.append('div').attr('class', 'newItem-suggestions-div');
-        let divInputVari = overlay.append('div').attr('class', 'newItem-input-div-vari');
+        let divSuggestionsSub = divInputSub.append('div').attr('class', 'newItem-suggestions-div');
+        let variable = divPick.append('div');
+        variable.append('input').attr('id', 'newItem-pick-option2').attr('type', 'radio').attr('name', 'newItemPick')
+            .attr('value', graph.typeOfLink.variable).property('checked', true)
+            .on('change', () => {
+            divInputSub.style('display', 'none');
+            divInputVari.style('display', '');
+        });
+        variable.append('label').attr('for', 'newItem-pick-option2').html('variable');
+        let divInputVari = overlay.append('div').attr('class', 'newItem-input-div newItem-input-div-vari');
         let inputVari = divInputVari.append('input').attr('class', 'newItem-input').attr('placeholder', 'Start typing...').attr('value', 'anc');
         inputVari.on('keyup paste copy cut', () => {
             let value = inputSub.property('value');
@@ -161,22 +174,67 @@ class editUI extends UI {
                 }, 400);
             }
         });
-        let divSuggestionsVari = overlay.append('div').attr('class', 'newItem-suggestions-div');
+        let divSuggestionsVari = divInputVari.append('div').attr('class', 'newItem-suggestions-div');
+    }
+    addNewVariable(var_id) {
+        let newVariable = new variable(this.graph.elControllers);
+        newVariable.elTable = this.elTable;
+        newVariable.fromID(var_id).then(() => {
+            newVariable.link_amount = 0;
+            newVariable.link_linked_id = var_id;
+            this.graph.variables.push(newVariable);
+            newVariable.addToUI(() => { this.graph.update(); });
+            this.overlay.open(false);
+            this.makeTableRowDraggable();
+        });
+    }
+    addNewSubImpekt(impekt_uid) {
+        console.log('add sub impekt_id', impekt_uid);
+        this.getNewSubImpekt(impekt_uid).then((subimpekt) => {
+            this.graph.impekts[0].subimpact.push(subimpekt);
+            this.addAdvancedSubImpekt(subimpekt);
+            this.makeTableRowDraggable();
+            this.overlay.open(false);
+        });
+    }
+    getNewSubImpekt(impekt_uid) {
+        return new Promise((resolve, reject) => {
+            let url = 'https://u39639p35134.web0087.zxcs-klant.nl/api/';
+            let xhr = new XMLHttpRequest();
+            xhr.open("POST", url, true);
+            xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState == 4 && xhr.status == 200) {
+                    var jsonData;
+                    try {
+                        jsonData = JSON.parse(xhr.responseText);
+                        resolve(jsonData);
+                    }
+                    catch (e) {
+                        console.error(e);
+                        reject(xhr.responseText);
+                    }
+                }
+            };
+            xhr.send('x=getSubimpektByID&y=' + impekt_uid);
+        });
     }
     startEdit() {
         d3.selectAll('[class^="UI-edit"]').remove();
         this.toggleAdvanced(true);
         this.addExtraCodes();
         this.addSaveBlock();
-        this.addButton(d3.select('#graph-UI-title-main'), editUI.editDivType.oneline, (val) => { this.graph.impekts[0].title = val; });
-        this.addButton(d3.select('#graph-UI-title-sub'), editUI.editDivType.oneline, (val) => { this.graph.impekts[0].sub_title = val; });
-        this.addButton(d3.select('#graph-UI-long-code'), editUI.editDivType.oneline, (val) => { this.graph.impekts[0].long_code_name = val; });
-        this.addButton(d3.select('#graph-UI-short-code'), editUI.editDivType.oneline, (val) => { this.graph.impekts[0].short_code_name = val; });
-        this.addButton(d3.select('#graph-UI-main-group'), editUI.editDivType.oneline, (val) => { this.graph.impekts[0].maingroup = val; });
-        this.addButton(d3.select('#graph-UI-sub-group'), editUI.editDivType.oneline, (val) => { this.graph.impekts[0].subgroup = val; });
-        this.addButton(d3.select('#graph-UI-unit'), editUI.editDivType.oneline, (val) => { this.graph.impekts[0].unit = val; });
-        this.addButton(d3.select('.graph-expl-explanation'), editUI.editDivType.multiline, (val) => { this.graph.impekts[0].descr = val; });
-        this.addButton(d3.select('.graph-expl-exclusions'), editUI.editDivType.multiline, (val) => { this.graph.impekts[0].excl = val; });
+        this.buttonEdit(d3.select('#graph-UI-title-main'), 'Title', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].title = val; });
+        this.buttonEdit(d3.select('#graph-UI-title-sub'), 'Sub title', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].sub_title = val; });
+        this.buttonEdit(d3.select('#graph-UI-long-code'), 'Long code', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].long_code_name = val; });
+        this.buttonEdit(d3.select('#graph-UI-short-code'), 'Short code', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].short_code_name = val; });
+        this.buttonEdit(d3.select('#graph-UI-main-group'), 'Main group', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].maingroup = val; });
+        this.buttonEdit(d3.select('#graph-UI-sub-group'), 'Sub group', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].subgroup = val; });
+        this.buttonEdit(d3.select('#graph-UI-unit'), 'Unit', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].unit = val; });
+        this.buttonEdit(d3.select('#graph-UI-uid'), 'UID', editUI.editDivType.notAllowed, (val) => { });
+        this.buttonEdit(d3.select('#graph-UI-id'), 'ID', editUI.editDivType.notAllowed, (val) => { });
+        this.buttonEdit(d3.select('.graph-expl-explanation'), 'Description', editUI.editDivType.multiline, (val) => { this.graph.impekts[0].descr = val; });
+        this.buttonEdit(d3.select('.graph-expl-exclusions'), 'Exclusions', editUI.editDivType.multiline, (val) => { this.graph.impekts[0].excl = val; });
         this.elTable.selectAll('tr[title]').each((d, i, arr) => {
             new confirmButton(d3.select(arr[i]).append('td').attr('class', "UI-edit-td"), 'x', "UI-edit-delete", "delete", () => {
                 this.removeLink(d3.select(arr[i]));
@@ -190,8 +248,6 @@ class editUI extends UI {
             d3.select(".UI-edit-add-fomrula-part").remove();
             this.buttonNewFormula();
         });
-        this.overlayerNewLink();
-        d3.selectAll(".newItem-input").dispatch('keyup');
     }
     removeLink(row) {
         let span = row.select('td span');
@@ -272,12 +328,20 @@ class editUI extends UI {
         titleDiv.append('div').attr('id', 'graph-UI-main-group').html(this.graph.impekts[0].maingroup);
         titleDiv.append('div').attr('id', 'graph-UI-sub-group').html(this.graph.impekts[0].subgroup);
         titleDiv.append('div').attr('id', 'graph-UI-unit').html(this.graph.impekts[0].unit);
+        titleDiv.append('div').attr('id', 'graph-UI-uid').html(this.graph.impekts[0].uid.toString());
+        titleDiv.append('div').attr('id', 'graph-UI-id').html(this.graph.impekts[0].impact_id.toString());
     }
     goEditer(el, callback) {
         let parentNode = d3.select(el.parentNode);
         let container = parentNode.select('.edit-container');
         let type = el.getAttribute('data-type');
         let oldText = container.html();
+        if (type == editUI.editDivType.warning_oneline.toString()) {
+            this.graph.tooltip.show('this', 1, 1);
+            type = editUI.editDivType.oneline.toString();
+            parentNode.select('.UI-edit-warning').remove();
+            parentNode.append('span').attr('class', 'UI-edit-warning').html('WARNING: continue only if you know the consequences');
+        }
         if (type == editUI.editDivType.oneline.toString()) {
             container.html('<input />');
             parentNode.select('input').property('focus', true).property('value', oldText);
@@ -308,6 +372,7 @@ class editUI extends UI {
             parentNode.select('.edit-container').html(newText.split('\n').join('<br>'));
         }
         el.remove();
+        parentNode.select('.UI-edit-warning').remove();
         parentNode.classed('UI-editor', false);
         parentNode.select('.UI-edit').style('display', '');
         callback(newText);
@@ -325,6 +390,10 @@ class editUI extends UI {
             .attr('class', 'UI-edit-div-button UI-edit-div-wait')
             .style('cursor', 'progress')
             .html('<span class="spinner">Wait</span>');
+        this.graph.impekts[0].impactvariables = this.graph.variables;
+        let links = [];
+        this.graph.impekts[0].impactvariables.map((vari) => { links.push(vari.var_id); });
+        this.graph.impekts[0].subimpact.map((subimpact) => { links.push(subimpact.impact_id); });
         let timeout;
         let promise = new Promise((resolve, reject) => {
             let url = 'https://u39639p35134.web0087.zxcs-klant.nl/api/';
@@ -385,6 +454,8 @@ class editUI extends UI {
     (function (editDivType) {
         editDivType[editDivType["oneline"] = 0] = "oneline";
         editDivType[editDivType["multiline"] = 1] = "multiline";
+        editDivType[editDivType["warning_oneline"] = 2] = "warning_oneline";
+        editDivType[editDivType["notAllowed"] = 3] = "notAllowed";
     })(editDivType = editUI.editDivType || (editUI.editDivType = {}));
     let restict;
     (function (restict) {

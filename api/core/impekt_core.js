@@ -190,9 +190,11 @@ class sliderVariable {
     }
 }
 class variable {
-    constructor(elControllers, json) {
+    constructor(elControllers) {
         this.elUpdate = [];
         this.elControllers = elControllers;
+    }
+    fromJSON(json) {
         this.link_amount = json.link_amount;
         this.link_advanced = json.link_advanced;
         this.link_changeable = json.link_changeable;
@@ -219,6 +221,37 @@ class variable {
         this.alias1 = json.alias1;
         this.value2 = json.value2;
         this.alias2 = json.alias2;
+    }
+    fromID(var_id) {
+        return new Promise((resolve, reject) => {
+            let url = 'https://u39639p35134.web0087.zxcs-klant.nl/api/';
+            let xhr = new XMLHttpRequest();
+            xhr.open("POST", url, true);
+            xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState == 4 && xhr.status == 200) {
+                    var jsonData;
+                    try {
+                        jsonData = JSON.parse(xhr.responseText)[0];
+                        resolve(this.fromJSON(jsonData));
+                    }
+                    catch (e) {
+                        console.error(e);
+                        reject(xhr.responseText);
+                    }
+                }
+            };
+            xhr.send('x=getVariableByID&y=' + var_id);
+        });
+    }
+    addToUI(callback) {
+        this.addToTable();
+        if (this.type == graph.typeOfController.slider) {
+            this.addSlider(callback);
+        }
+        if (this.type == graph.typeOfController.toggle) {
+            this.addToggle(callback);
+        }
     }
     addToTable() {
         let row = this.elTable.append('tr')
@@ -257,6 +290,18 @@ class variable {
             callback(amount);
         });
     }
+    internalStackCompare() {
+        this.fromJSON({
+            "uid": -1,
+            "type": graph.typeOfController.internalStackCompare,
+            "short_code_name": "internalStackCompare",
+            "alias1": 'Stacked',
+            "value1": graph.TypeOfComparison.Stacked,
+            "alias2": 'Compared',
+            "value2": graph.TypeOfComparison.Compare
+        });
+        return this;
+    }
 }
 class graph {
     constructor() {
@@ -274,15 +319,8 @@ class graph {
         this.TypeOfComparison = settings.TypeOfComparison;
     }
     addButtons() {
-        let internalStackCompare = new variable(this.elControllers, {
-            "uid": -1,
-            "type": graph.typeOfController.internalStackCompare,
-            "short_code_name": "internalStackCompare",
-            "alias1": 'Stacked',
-            "value1": graph.TypeOfComparison.Stacked,
-            "alias2": 'Compared',
-            "value2": graph.TypeOfComparison.Compare
-        });
+        let internalStackCompare = new variable(this.elControllers);
+        internalStackCompare.internalStackCompare();
         internalStackCompare.type = graph.typeOfController.internalStackCompare;
         internalStackCompare.addToggle((TypeOfComparison) => {
             this.setMode(TypeOfComparison);
@@ -316,7 +354,8 @@ class graph {
     }
     addVariables() {
         this.impekts.map(impekt => impekt.impactvariables.map(data => {
-            let oneVariable = new variable(this.elControllers, data);
+            let oneVariable = new variable(this.elControllers);
+            oneVariable.fromJSON(data);
             this.variables.push(oneVariable);
         }));
         this.impekts.map((impekt) => {
@@ -737,7 +776,7 @@ class impekt {
                 xhr.open("POST", url, true);
                 xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
                 xhr.onreadystatechange = () => {
-                    if (xhr.readyState == 4 && xhr.status == 200) {
+                    if (xhr.readyState == 4 && xhr.status == 202) {
                         var jsonData;
                         try {
                             jsonData = JSON.parse(xhr.responseText);
@@ -746,6 +785,12 @@ class impekt {
                             return reject(xhr.responseText);
                         }
                         return resolve(this.bindData(jsonData[0]));
+                    }
+                    else {
+                        if (xhr.status != 202) {
+                            console.error('wrong header', xhr.status);
+                            return resolve('headers');
+                        }
                     }
                 };
                 xhr.send('x=getData&y=' + this.uid);

@@ -47,11 +47,14 @@ class UI {
     }
 
     // Updates the variables inside graph (also used for calculating data)
-    addVariable() {        
+    addVariable() {    
         this.graph.variables.map((variable) => {
             variable.elTable = this.elTable
-            variable.addSlider(() => { this.graph.update() });
-            variable.addToTable();
+            variable.addToUI(() => {
+                this.graph.update();
+                this.makeTableRowDraggable();
+            });
+
         })
     }
 
@@ -182,25 +185,20 @@ class UI {
         // Overview Table
         this.elTable = this.elInfo.append('table')
         this.elTable.append('tr').html("<th></th><th>Forumla</th><th colspan='2' style='text-align:center;	padding: 5px 20px 5px 0;' >Value</th><th></th>")
-        this.graph.impekts[0].subimpact.map((e) => { // Add subimpekts to table
 
-            this.elTable.append('tr')
-                .attr('class', 'graph-UI-table-tr graph-UI-table-impact')
-                .attr('title', 'drag me into the formula')
-                .html(`
-                    <td class="graph-UI-info-copy"><span data-type="`+ graph.typeOfLink.subimpekt + `" data-name="` + e.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + e.short_code_name + `" data-value="dataset[0].subimpact[` + e.localid + `].impactdata[0][field]">'>` + e.short_code_name + `</span></td>
-                    <td>` + e.title + ` (` + e.short_code_name + `)</td>
-                    <td colspan='2' style='text-align:center;' class='vari_` + e.short_code_name + `'><a href='#id_` + e.short_code_name + `' title='More information'>Fixed</a></td>
-                `)
+        // Add subimpekts to table
+        this.graph.impekts[0].subimpact.map((subImpekt) => { 
+            this.addAdvancedSubImpekt(subImpekt);
+           
         })
+        // Variables are added later to the table
 
         this.elAdvancedError = this.elInfo.append('div').attr('class', 'graph-UI-info-error')
 
+        
 
 
 
-
-        // Lines are added in addFormula()
 
 
         this.makeTableRowDraggable()
@@ -290,7 +288,16 @@ class UI {
 
 
     }
-
+    addAdvancedSubImpekt(e) {
+        this.elTable.append('tr')
+            .attr('class', 'graph-UI-table-tr graph-UI-table-impact')
+            .attr('title', 'drag me into the formula')
+            .html(`
+                    <td class="graph-UI-info-copy"><span data-type="`+ graph.typeOfLink.subimpekt + `" data-name="` + e.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + e.short_code_name + `" data-value="dataset[0].subimpact[` + e.localid + `].impactdata[0][field]">'>` + e.short_code_name + `</span></td>
+                    <td>` + e.title + ` (` + e.short_code_name + `)</td>
+                    <td colspan='2' style='text-align:center;' class='vari_` + e.short_code_name + `'><a href='#id_` + e.short_code_name + `' title='More information'>Fixed</a></td>
+                `)
+    }
     // Adds information about impekt
     addImpekt() {
         this.elImpekt.html('')

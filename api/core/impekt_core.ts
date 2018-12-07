@@ -21,7 +21,6 @@ let color = ['#157a6e', '#ffba49', '#da2c38', '#87c38f', '#b8b8d1']
  * ToDo:
  * Comparision
  * Limit max numbers 9000000
- * Error toolbar disapears if you already move over graph
  * Formula: Tag+a works = 0 , but no error
  * */
 
@@ -385,10 +384,13 @@ class variable {
     elUpdate: d3.Selection<HTMLElement, any, HTMLElement, any>[] = [];
 
 
-    constructor(elControllers: d3.Selection<HTMLElement, any, HTMLElement, any>, json: any) {
-
+    constructor(elControllers: d3.Selection<HTMLElement, any, HTMLElement, any>) {
         this.elControllers = elControllers // inherit from Graph
 
+        
+    }
+    fromJSON(json: any) {
+       
         // link values
         this.link_amount = json.link_amount
         this.link_advanced = json.link_advanced
@@ -422,6 +424,49 @@ class variable {
         this.alias1 = json.alias1
         this.value2 = json.value2
         this.alias2 = json.alias2
+    }
+    fromID(var_id):Promise<any> {
+        return new Promise<any>((resolve,reject) => {
+            let url = 'https://u39639p35134.web0087.zxcs-klant.nl/api/'
+            let xhr = new XMLHttpRequest();
+            xhr.open("POST", url, true);
+            xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState == 4 && xhr.status == 200) {
+                    var jsonData
+                    try {
+                        jsonData = JSON.parse(xhr.responseText)[0];
+
+
+                        resolve(this.fromJSON(jsonData))
+
+                    } catch (e) {
+                        console.error(e);
+                        reject(xhr.responseText);
+
+                    }
+
+                }
+            }
+
+            xhr.send('x=getVariableByID&y=' + var_id);
+
+
+
+        })
+
+
+
+
+    }
+    addToUI(callback) {
+        this.addToTable()
+        if (this.type == graph.typeOfController.slider) {
+            this.addSlider(callback)
+        }
+        if (this.type == graph.typeOfController.toggle) {
+            this.addToggle(callback)
+        }
     }
 
     addToTable() {
@@ -479,6 +524,20 @@ class variable {
         })
     }
 
+    // Interal fix buttons
+    internalStackCompare() {
+        this.fromJSON({
+            "uid": -1,
+            "type": graph.typeOfController.internalStackCompare,
+            "short_code_name": "internalStackCompare",
+            "alias1": 'Stacked',
+            "value1": graph.TypeOfComparison.Stacked,
+            "alias2": 'Compared',
+            "value2": graph.TypeOfComparison.Compare
+
+        })
+        return this
+    }
 }
 
 
@@ -545,16 +604,8 @@ class graph {
     // Add Default buttons
     addButtons() {
         let internalStackCompare =
-            new variable(this.elControllers, {
-                "uid": -1,
-                "type": graph.typeOfController.internalStackCompare,
-                "short_code_name": "internalStackCompare",
-                "alias1": 'Stacked',
-                "value1": graph.TypeOfComparison.Stacked,
-                "alias2": 'Compared',
-                "value2": graph.TypeOfComparison.Compare
-
-            })
+            new variable(this.elControllers)
+        internalStackCompare.internalStackCompare();
         internalStackCompare.type = graph.typeOfController.internalStackCompare // ToDo Temp, see overule
         internalStackCompare.addToggle((TypeOfComparison) => {
             this.setMode(TypeOfComparison)
@@ -567,13 +618,11 @@ class graph {
         return new Promise((resolve, reject) => {
 
             this.importData(settings.ids)
-
                 .catch((error) => {
                     console.error(error)
                     this.loader(false);
                     this.errors(true, 'There is a technical error, contact Admin')
                 })
-
                 .then((arrayOfImpekts) => {
                     this.impekts = arrayOfImpekts;
                     this.AmountOfComparison = (this.impekts.length === 1) ? graph.AmountOfComparison.one : graph.AmountOfComparison.multiples;
@@ -604,26 +653,30 @@ class graph {
 
 
     }
+
+    // Adds variable to impekt so calculations can be done
     addVariables() {
 
 
         // For every variable
         this.impekts.map(impekt => impekt.impactvariables.map(data => {
-            let oneVariable = new variable(this.elControllers, data);
-
-            //Todo? no update
+            let oneVariable = new variable(this.elControllers);
+            //console.log(oneVariable)
+            oneVariable.fromJSON(data);
+            //console.log(oneVariable)
             this.variables.push(oneVariable)
         }))
-
+        //Todo? no update
         this.impekts.map((impekt) => {
             impekt.variables = this.variables
         })
 
 
     }
+
     // Extract all used field trough all impekts
     setUsedFields() {
-
+        // ToDo, also for subimpekts
         this.impekts.map((x) => { // For every impekts
             this.usedFields.push.apply(this.usedFields,
                 Object.keys(x.impactdata.filter(x => x.dataset === 2)[0])// Merge new fields into array
@@ -1199,7 +1252,7 @@ class impekt implements Iimpekt {
                 xhr.open("POST", url, true);
                 xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
                 xhr.onreadystatechange = () => {
-                    if (xhr.readyState == 4 && xhr.status == 200) {
+                    if (xhr.readyState == 4 && xhr.status == 202) {
 
                         var jsonData;
                         try {
@@ -1211,7 +1264,12 @@ class impekt implements Iimpekt {
                         //console.log(this.bindData(jsonData[0]), jsonData)
                         return resolve(this.bindData(jsonData[0]));
 
-                        
+
+                    } else {
+                        if (  xhr.status != 202) {
+                            console.error('wrong header', xhr.status)
+                            return resolve('headers')
+                        }
                     }
                 }
                 xhr.send('x=getData&y=' + this.uid);

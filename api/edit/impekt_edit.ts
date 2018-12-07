@@ -5,6 +5,7 @@
     title: d3.Selection<HTMLElement, {}, HTMLElement, any>
     constructor() {
         this.el = d3.select('.overlay')
+        this.el.style('display', 'none')
 
         let background = this.el.append('div').attr('class', 'overlay-background')
         let container = this.el.append('div').attr('class', 'overlay-container')
@@ -90,67 +91,65 @@ class editUI extends UI {
 
 
 
-            let url = 'https://u39639p35134.web0087.zxcs-klant.nl/api/'
-            let xhr = new XMLHttpRequest();
-            xhr.open("POST", url, true);
-            xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-            xhr.onreadystatechange = () => {
-                if (xhr.readyState == 4 && xhr.status == 200) {
+        let url = 'https://u39639p35134.web0087.zxcs-klant.nl/api/'
+        let xhr = new XMLHttpRequest();
+        xhr.open("POST", url, true);
+        xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+        xhr.onreadystatechange = () => {
+            if (xhr.readyState == 4 && xhr.status == 200) {
 
-                    var jsonData
-                    try {
-                        jsonData = JSON.parse(xhr.responseText);
+                var jsonData
+                try {
+                    jsonData = JSON.parse(xhr.responseText);
 
-                    } catch (e) {
-                        console.error(xhr);
-                        throw new Error(xhr.responseText);
+                } catch (e) {
+                    console.error(xhr);
+                    throw new Error(xhr.responseText);
 
+                }
+
+
+                jsonData.map((link) => {
+
+                    let item = divSuggestions.append('div').attr('class', 'newItem-item-div')
+
+                    item.append('div').attr('class', 'newItem-long').html(link.long_code_name)
+                    item.append('div').attr('class', 'newItem-short').html(link.short_code_name)
+                    item.append('div').attr('class', 'newItem-desc').html(link.desc)
+                    item.append('div').attr('class', 'newItem-tags').html(link.tags)
+                    item.append('div').attr('class', 'newItem-group').html(link.group)
+                    item.append('div').attr('class', 'newItem-subgroup').html(link.sub_group)
+
+                    if (type == graph.typeOfLink.subimpekt) {
+                        item.on('click touch', () => {
+                            this.addNewSubImpekt(link.impact_id);
+                        })
                     }
 
 
-                    jsonData.map((vari) => {
+                    if (type == graph.typeOfLink.variable) {
+                        item.on('click touch', () => {
 
-                        let item = divSuggestions.append('div').attr('class', 'newItem-item-div')
-
-                        item.append('div').attr('class', 'newItem-long').html(vari.long_code_name)
-                        item.append('div').attr('class', 'newItem-short').html(vari.short_code_name)
-                        item.append('div').attr('class', 'newItem-desc').html(vari.desc)
-                        item.append('div').attr('class', 'newItem-tags').html(vari.tags)
-                        item.append('div').attr('class', 'newItem-group').html(vari.group)
-                        item.append('div').attr('class', 'newItem-subgroup').html(vari.sub_group)
-
-                        if (type == graph.typeOfLink.subimpekt) {
-                            item.on('click touch', () => {
-                                this.addImpekt()
-                                this.overlay.open(false);
-                            })
-                        }
-
-
-                        if (type == graph.typeOfLink.variable) {
-                            item.on('click touch', () => {
-                                
-                                this.addVariable()
-                                this.overlay.open(false);
-                            })
-                        }
+                            this.addNewVariable(link.var_id);
+                        })
+                    }
 
 
 
 
-                    })
+                })
 
 
 
 
-                }
             }
-            if (type == graph.typeOfLink.subimpekt) {
-                xhr.send('x=getSubimpekt&y=' + search);
-            }
-            if (type == graph.typeOfLink.variable) {
-                xhr.send('x=getVariable&y=' + search);
-            }
+        }
+        if (type == graph.typeOfLink.subimpekt) {
+            xhr.send('x=getSubimpekt&y=' + search);
+        }
+        if (type == graph.typeOfLink.variable) {
+            xhr.send('x=getVariable&y=' + search);
+        }
 
     }
 
@@ -161,16 +160,18 @@ class editUI extends UI {
         let overlay = this.overlay.body
 
 
-        // Item pick
+        // Sub impekts
         let divPick = overlay.append('div').attr('class', 'newItem-pick-div')
-        let subimpekt = divPick.append('label').attr('class', 'newItem-pick-option1').html('subimpekt')
-            .append('input').attr('type', 'radio').attr('name', 'newItemPick').attr('value', graph.typeOfLink.subimpekt)
-        let variable = divPick.append('label').attr('class', 'newItem-pick-option1').html('variable')
-            .append('input').attr('type', 'radio').attr('name', 'newItemPick').attr('value', graph.typeOfLink.variable).property('checked', true)
-
-        // Inputs, two subscreens
-        let divInputSub = overlay.append('div').attr('class', 'newItem-input-div-sub')
-        let inputSub = divInputSub.append('input').attr('class', 'newItem-input').attr('placeholder', 'Start typing...').attr('value','igh')
+        let subimpekt = divPick.append('div')
+        subimpekt.append('input').attr('id', 'newItem-pick-option1').attr('type', 'radio').attr('name', 'newItemPick')
+            .attr('value', graph.typeOfLink.subimpekt)
+            .on('change', () => {
+                divInputSub.style('display', '')
+                divInputVari.style('display', 'none')
+            })
+        subimpekt.append('label').attr('for', 'newItem-pick-option1').html('subimpekt')
+        let divInputSub = overlay.append('div').attr('class', 'newItem-input-div newItem-input-div-sub').style('display', 'none')
+        let inputSub = divInputSub.append('input').attr('class', 'newItem-input').attr('placeholder', 'Start typing...').attr('value', 'igh')
         inputSub.on('keyup paste copy cut', () => {
             let value: string = inputSub.property('value');
             if ([16, 17, 18, 32, 27, 37, 38, 39, 40].indexOf(d3.event.keyCode) < 0) {
@@ -185,10 +186,20 @@ class editUI extends UI {
             }
 
         })
-        // Show suggestions to add
-        let divSuggestionsSub = overlay.append('div').attr('class', 'newItem-suggestions-div')
+        let divSuggestionsSub = divInputSub.append('div').attr('class', 'newItem-suggestions-div')
 
-        let divInputVari = overlay.append('div').attr('class', 'newItem-input-div-vari')
+
+
+        // Variables
+        let variable = divPick.append('div')
+        variable.append('input').attr('id', 'newItem-pick-option2').attr('type', 'radio').attr('name', 'newItemPick')
+            .attr('value', graph.typeOfLink.variable).property('checked', true)
+            .on('change', () => {
+                divInputSub.style('display', 'none')
+                divInputVari.style('display', '')
+            })
+        variable.append('label').attr('for', 'newItem-pick-option2').html('variable')
+        let divInputVari = overlay.append('div').attr('class', 'newItem-input-div newItem-input-div-vari')
         let inputVari = divInputVari.append('input').attr('class', 'newItem-input').attr('placeholder', 'Start typing...').attr('value', 'anc')
         inputVari.on('keyup paste copy cut', () => {
             let value: string = inputSub.property('value');
@@ -204,11 +215,84 @@ class editUI extends UI {
             }
 
         })
-        // Show suggestions to add
-        let divSuggestionsVari = overlay.append('div').attr('class', 'newItem-suggestions-div')
+        let divSuggestionsVari = divInputVari.append('div').attr('class', 'newItem-suggestions-div')
 
 
-        // Activate
+
+
+    }
+    addNewVariable(var_id) {
+
+        // Get variable
+        let newVariable = new variable(this.graph.elControllers)
+        newVariable.elTable = this.elTable;
+        newVariable.fromID(var_id).then(() => {
+            // Defaults
+            newVariable.link_amount = 0
+            newVariable.link_linked_id = var_id
+
+            // Add to data
+            this.graph.variables.push(newVariable);
+            //this.graph.impekts[0].variables.push(newVariable);
+
+            // Update UI
+            newVariable.addToUI(() => { this.graph.update() });
+
+            this.overlay.open(false);
+            this.makeTableRowDraggable()
+        });
+    }
+
+    addNewSubImpekt(impekt_uid) {
+
+        console.log('add sub impekt_id', impekt_uid)
+
+        // Get data
+        this.getNewSubImpekt(impekt_uid).then((subimpekt) => {
+
+
+            // Add to data
+            this.graph.impekts[0].subimpact.push(subimpekt);
+
+            // Add to table
+            this.addAdvancedSubImpekt(subimpekt)
+            this.makeTableRowDraggable()
+            this.overlay.open(false);
+        })
+
+    }
+    getNewSubImpekt(impekt_uid): Promise<any> {
+
+        return new Promise<any>((resolve, reject) => {
+            let url = 'https://u39639p35134.web0087.zxcs-klant.nl/api/'
+            let xhr = new XMLHttpRequest();
+            xhr.open("POST", url, true);
+            xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+            xhr.onreadystatechange = () => {
+                if (xhr.readyState == 4 && xhr.status == 200) {
+                    var jsonData
+                    try {
+                        jsonData = JSON.parse(xhr.responseText); // Gets one subimpekt back, not an array!
+
+
+                        resolve(jsonData)
+
+                    } catch (e) {
+                        console.error(e);
+                        reject(xhr.responseText);
+
+                    }
+
+                }
+            }
+
+            xhr.send('x=getSubimpektByID&y=' + impekt_uid);
+
+
+
+        })
+
+
 
 
     }
@@ -241,15 +325,21 @@ class editUI extends UI {
 
 
         // Add adding buttons to some of the elements
-        this.addButton(d3.select('#graph-UI-title-main'), editUI.editDivType.oneline, (val) => { this.graph.impekts[0].title = val })
-        this.addButton(d3.select('#graph-UI-title-sub'), editUI.editDivType.oneline, (val) => { this.graph.impekts[0].sub_title = val })
-        this.addButton(d3.select('#graph-UI-long-code'), editUI.editDivType.oneline, (val) => { this.graph.impekts[0].long_code_name = val })
-        this.addButton(d3.select('#graph-UI-short-code'), editUI.editDivType.oneline, (val) => { this.graph.impekts[0].short_code_name = val })
-        this.addButton(d3.select('#graph-UI-main-group'), editUI.editDivType.oneline, (val) => { this.graph.impekts[0].maingroup = val })
-        this.addButton(d3.select('#graph-UI-sub-group'), editUI.editDivType.oneline, (val) => { this.graph.impekts[0].subgroup = val })
-        this.addButton(d3.select('#graph-UI-unit'), editUI.editDivType.oneline, (val) => { this.graph.impekts[0].unit = val })
-        this.addButton(d3.select('.graph-expl-explanation'), editUI.editDivType.multiline, (val) => { this.graph.impekts[0].descr = val })
-        this.addButton(d3.select('.graph-expl-exclusions'), editUI.editDivType.multiline, (val) => { this.graph.impekts[0].excl = val })
+        this.buttonEdit(d3.select('#graph-UI-title-main'), 'Title', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].title = val })
+        this.buttonEdit(d3.select('#graph-UI-title-sub'), 'Sub title', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].sub_title = val })
+        this.buttonEdit(d3.select('#graph-UI-long-code'), 'Long code', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].long_code_name = val })
+        this.buttonEdit(d3.select('#graph-UI-short-code'), 'Short code', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].short_code_name = val })
+        this.buttonEdit(d3.select('#graph-UI-main-group'), 'Main group', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].maingroup = val })
+        this.buttonEdit(d3.select('#graph-UI-sub-group'), 'Sub group', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].subgroup = val })
+        this.buttonEdit(d3.select('#graph-UI-unit'), 'Unit', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].unit = val })
+        this.buttonEdit(d3.select('#graph-UI-uid'), 'UID', editUI.editDivType.notAllowed, (val) => {  })
+        this.buttonEdit(d3.select('#graph-UI-id'), 'ID', editUI.editDivType.notAllowed, (val) => {  })
+
+
+
+
+        this.buttonEdit(d3.select('.graph-expl-explanation'), 'Description', editUI.editDivType.multiline, (val) => { this.graph.impekts[0].descr = val })
+        this.buttonEdit(d3.select('.graph-expl-exclusions'), 'Exclusions', editUI.editDivType.multiline, (val) => { this.graph.impekts[0].excl = val })
 
 
         // Advanced block
@@ -271,8 +361,8 @@ class editUI extends UI {
             d3.select(".UI-edit-add-fomrula-part").remove()
             this.buttonNewFormula()
         })
-        this.overlayerNewLink()
-        d3.selectAll(".newItem-input").dispatch('keyup');
+        //this.overlayerNewLink()
+        //d3.selectAll(".newItem-input-div-vari .newItem-input").dispatch('keyup');
     }
 
 
@@ -377,25 +467,33 @@ class editUI extends UI {
         titleDiv.append('div').attr('id', 'graph-UI-main-group').html(this.graph.impekts[0].maingroup)
         titleDiv.append('div').attr('id', 'graph-UI-sub-group').html(this.graph.impekts[0].subgroup)
         titleDiv.append('div').attr('id', 'graph-UI-unit').html(this.graph.impekts[0].unit)
+        titleDiv.append('div').attr('id', 'graph-UI-uid').html(this.graph.impekts[0].uid.toString())
+        titleDiv.append('div').attr('id', 'graph-UI-id').html(this.graph.impekts[0].impact_id.toString())
     }
+
+
 
     // Edit Text elements
     // Adds a button, and place the other text in a span
-    addButton = (item, type, callback) => {
+    buttonEdit = (item, fieldname: string, type, callback) => {
 
 
 
-        if (item.select('.edit-container').empty()) item.html("<span class='edit-container'>" + item.html() + "</span>")
+        if (item.select('.edit-container').empty()) item.html("<span class='edit-container-fieldname'>" + fieldname + ": </span><span class='edit-container'>" + item.html() + "</span>")
 
+        if (type != editUI.editDivType.notAllowed) {
 
-        item.append('span').attr('class', 'UI-edit').html('Edit')
-            .attr('data-type', type)
-            .on('click touch', (d, i, arr) => {
-                this.goEditer(arr[i], callback)
-            })
+            item.append('span').attr('class', 'UI-edit').html('Edit')
+                .attr('data-type', type)
+                .on('click touch', (d, i, arr) => {
+                    this.goEditer(arr[i], callback)
+                })
+        }
 
 
     }
+
+
     // When clicked on edit, create a input and save button. Edit button is hidden
     goEditer(el: HTMLElement, callback) {
 
@@ -403,6 +501,14 @@ class editUI extends UI {
         let container = parentNode.select('.edit-container')
         let type: string = el.getAttribute('data-type')
         let oldText = container.html()
+
+
+        if (type == editUI.editDivType.warning_oneline.toString()) {
+            this.graph.tooltip.show('this', 1, 1)
+            type = editUI.editDivType.oneline.toString()
+            parentNode.select('.UI-edit-warning').remove()
+            parentNode.append('span').attr('class', 'UI-edit-warning').html('WARNING: continue only if you know the consequences')
+        }
 
         // If oneline, replace with input 
         if (type == editUI.editDivType.oneline.toString()) {
@@ -432,7 +538,6 @@ class editUI extends UI {
 
 
     }
-    // When saved, restore input and edit button
     closeEditer(el: HTMLElement, callback) {
         let parentNode = d3.select(<HTMLElement>el.parentNode)
         let newText = 'error'
@@ -452,10 +557,11 @@ class editUI extends UI {
         }
 
         el.remove()
+        parentNode.select('.UI-edit-warning').remove()
         parentNode.classed('UI-editor', false)
         parentNode.select('.UI-edit').style('display', '')
         callback(newText)
-    }
+    }// When saved, restore input and edit button
 
 
 
@@ -475,6 +581,17 @@ class editUI extends UI {
             .attr('class', 'UI-edit-div-button UI-edit-div-wait')
             .style('cursor', 'progress')
             .html('<span class="spinner">Wait</span>')
+
+        // Update data
+        // Variables do update. impactvariables are not used after import
+        this.graph.impekts[0].impactvariables = this.graph.variables;
+
+        
+
+        let links: number[] = [];
+        this.graph.impekts[0].impactvariables.map((vari) => { links.push(vari.var_id) })
+        this.graph.impekts[0].subimpact.map((subimpact) => { links.push(subimpact.impact_id) })
+
         let timeout
 
 
@@ -566,7 +683,9 @@ module editUI {
 
     export enum editDivType {
         oneline,
-        multiline
+        multiline,
+        warning_oneline,
+        notAllowed
     }
 
     export enum restict {
