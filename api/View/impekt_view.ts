@@ -2,7 +2,9 @@
 
 /* This Typescript is meant for Impekt Viewer */
 
-
+function toggleMenu(x) {
+    x.parentNode.parentNode.classList.toggle("header-menu-open");
+}
 
 
 class UI {
@@ -22,10 +24,10 @@ class UI {
 
 
 
-     
+
     constructor(graph) {
         this.graph = graph
-        this.elUI = d3.select('.graph-container').append('div').attr('class', 'graph-UI-group')
+        this.elUI = d3.select('#page').append('div').attr('class', 'graph-UI-group')
         this.elAdvanced = this.elUI.append('div').attr('class', 'graph-UI-advanced')
         this.elFormula = this.elUI.append('div').attr('class', 'graph-UI-formula')
         this.elImpekt = this.elUI.append('div').attr('class', 'graph-UI-impekt')
@@ -40,14 +42,15 @@ class UI {
             this.addOverviewFormula();
             this.addAdvanced();
             this.addAdvancedFormula();
-            this.addImpekt();
+            this.addImpektDesc();
             this.addResource()
         }
         this.addVariable()
+        this.makeTableRowDraggable();
     }
 
     // Updates the variables inside graph (also used for calculating data)
-    addVariable() {    
+    addVariable() {
         this.graph.variables.map((variable) => {
             variable.elTable = this.elTable
             variable.addToUI(() => {
@@ -67,6 +70,7 @@ class UI {
         this.elAdvancedForm.map((formulaPart, k) => {
 
             let HRformula = formulaPart.html();
+            //console.log('decodeFormula',HRformula)
             let technicalFormula: string = HRformula
                 .replace(/  /g, ' ')
                 .split(/(<hr.+?>+)/g)
@@ -74,7 +78,7 @@ class UI {
                 .map((x) => {
 
                     if (x.indexOf('<hr') === 0) {
-                        let value = x.match(/data-alias=".*?"/g)[0]
+                        let value = x.match(/data-value=".*?"/g)[0]
                         return ('[' + value.substring(12, value.length - 1) + ']')
                     }
                     else {
@@ -83,7 +87,7 @@ class UI {
                 })
                 .join('')
             // Create new formula and put in Array()
-            let newFormulaPart: Iformula = { title: this.graph.impekts[0].formula[k].title, technical: technicalFormula }
+            let newFormulaPart: Iformula = { title: d3.select('#graph_ui_input_edit_' + k).property('value'), technical: technicalFormula }
             newFormula.push(newFormulaPart)
         })
         this.graph.impekts[0].edited = true;
@@ -91,7 +95,6 @@ class UI {
 
         // Update formula 
         this.graph.updateFormula(newFormula)
-        
 
 
         // Update graph
@@ -111,6 +114,7 @@ class UI {
 
 
     ///////////// Add data on build /////////////
+
     //Set title
     setTitle() {
         let subtitleString = ''
@@ -187,21 +191,17 @@ class UI {
         this.elTable.append('tr').html("<th></th><th>Forumla</th><th colspan='2' style='text-align:center;	padding: 5px 20px 5px 0;' >Value</th><th></th>")
 
         // Add subimpekts to table
-        this.graph.impekts[0].subimpact.map((subImpekt) => { 
-            this.addAdvancedSubImpekt(subImpekt);
-           
+        y.graph.impekts[0].links.filter(e => e.subimpact).map((link) => {
+            this.addAdvancedSubImpekt(link);
         })
         // Variables are added later to the table
 
         this.elAdvancedError = this.elInfo.append('div').attr('class', 'graph-UI-info-error')
 
-        
 
 
 
 
-
-        this.makeTableRowDraggable()
     }
     // Adds formula to advanced section
     addAdvancedFormula() {
@@ -219,9 +219,10 @@ class UI {
             let elementForm = this.elInfo.append('div').attr('class', 'graph-UI-input-block')
 
             // per group in formula
+
             for (var k = 0, groups = singleImpekt.formula.length; k < groups; k += 1) {
 
-                
+
 
                 if (k !== 0) { // Skip first but add + sign
                     this.addAdvancedFormulaPlus()
@@ -235,7 +236,8 @@ class UI {
 
     }
     // Adds one formula part
-    addAdvancedFormulaPart(k, title,formula ) {
+    addAdvancedFormulaPart(k, title, formula) {
+        console.log(k, title, formula)
         let group = d3.select('.graph-UI-input-block')
             .append('div')
             .attr('class', 'graph-UI-input-group')
@@ -265,7 +267,21 @@ class UI {
             .style('border-left', ' solid 6px' + color[k])
             .html(formula)
             .on('keyup paste copy cut'/*, '[contenteditable]' */, () => {
-                if ([16, 17, 18, 32, 27, 37, 38, 39, 40].indexOf(d3.event.keyCode) < 0) {
+
+                // Clean input
+                if (d3.event.keyCode == 13) {//enter
+                    el.html(el.html().split('<br>').join('')) // removes <br>
+                }
+
+                // Only update on some keys
+                if ([16,// Shit
+                    17, // ctrl
+                    18, // Alt
+                    13, // enter
+                    32, // Space
+                    27, // esc
+                    37, 38, 39, 40 // Arrow movement
+                ].indexOf(d3.event.keyCode) < 0) {
                     clearTimeout(this.timeout);
                     this.timeout = setTimeout(() => { this.decodeFormula(); }, 400);
                 }
@@ -288,18 +304,19 @@ class UI {
 
 
     }
-    addAdvancedSubImpekt(e) {
+    addAdvancedSubImpekt(link: link) {
+        let subimpekt = link.subimpact;
         this.elTable.append('tr')
             .attr('class', 'graph-UI-table-tr graph-UI-table-impact')
             .attr('title', 'drag me into the formula')
             .html(`
-                    <td class="graph-UI-info-copy"><span data-type="`+ graph.typeOfLink.subimpekt + `" data-name="` + e.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + e.short_code_name + `" data-value="dataset[0].subimpact[` + e.localid + `].impactdata[0][field]">'>` + e.short_code_name + `</span></td>
-                    <td>` + e.title + ` (` + e.short_code_name + `)</td>
-                    <td colspan='2' style='text-align:center;' class='vari_` + e.short_code_name + `'><a href='#id_` + e.short_code_name + `' title='More information'>Fixed</a></td>
+                    <td class="graph-UI-info-copy"><span data-type="`+ graph.typeOfLink.subimpekt + `" data-name="` + subimpekt.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + subimpekt.short_code_name + `" data-value="` + link.link_uid + `">'>` + subimpekt.short_code_name + `</span></td>
+                    <td>` + subimpekt.title + ` (` + subimpekt.short_code_name + `)</td>
+                    <td colspan='2' style='text-align:center;' class='vari_` + subimpekt.short_code_name + `'><a href='#id_` + subimpekt.short_code_name + `' title='More information'>Fixed</a></td>
                 `)
     }
     // Adds information about impekt
-    addImpekt() {
+    addImpektDesc() {
         this.elImpekt.html('')
         // AddExplanation
         let singleImpekt = this.graph.impekts[0]
@@ -322,14 +339,14 @@ class UI {
         // Get all resources
         let list: string[] = []
         this.graph.impekts.map(impekt => {
-            impekt.impactvariables.map((vari) => {
+            /*impekt.impactvariables.map((vari) => {
                 list.push(vari.short_code_name);
-            })
+            })*/
         })
         this.graph.impekts.map(impekt => {
-            impekt.subimpact.map((subs) => {
+            /*impekt.subimpact.map((subs) => {
                 list.push(subs.short_code_name);
-            })
+            })*/
         })
 
         var inlc = this.elImpekt.append('p').attr('class', 'graph-expl-included').html('<h4>Including</h4>')
@@ -337,6 +354,7 @@ class UI {
     }
 
     ///////////// Controllers /////////////
+
     //Show or Hide advanced section
     toggleAdvanced(show?: boolean) {
         if (show) (<HTMLInputElement>this.elUI.select('.settings-toggle-main').node()).checked = true
@@ -371,87 +389,94 @@ class UI {
 
                     let info = this.elInfo
                     let divFormulas = this.elAdvancedForm//.selectAll('.graph-UI-input')
-
-                    // Add gray blocks in Advanced>Formula>Inputs
-                    let divIndex = 1
-                    divFormulas.map((divFormula) => {
-
-
-                        //var divFormula = d3.select(this)
-                        var reg = /(<hr.+?>+)/g // optional whitespaces
-                        var splits = divFormula.html().replace(/  /g, ' ').split(reg).filter(x => x//*.trim()
-                        )
-
-                        // remove empty parts
-
-                        var forhtml = '<div class="div-small" id="X' + divIndex + '">' + '</div>'
-                        divIndex += 1
-
-                        for (var i = 0, j = splits.length; i < j; i += 1) {
-                            if (splits[i].slice(0, 3) === '<hr') {
-                                forhtml += '<p id="X' + divIndex + '">' + splits[i] + '</p>'
-                                divIndex += 1
-                            }
-                            else {
-                                var charsplits = splits[i].split(/\b/g).filter(function (x) { return x.trim() !== '' })
-                                for (var k = 0, l = charsplits.length; k < l; k += 1) {
-                                    forhtml += '<p id="X' + divIndex + '">' + charsplits[k] + '</p>'
-                                    divIndex += 1
-                                }
-
-                            }
-                            forhtml += '<div class="div-small" id="X' + divIndex + '">' + '</div>'
-                            divIndex += 1
-                        }
-
-                        divFormula.html(forhtml)
-                        divFormula.style('min-height', '60px').style('padding', '10px 0')
-                        divFormula.selectAll('.div-small').style('width', '')
-                    })
-
-
                     // First time update mouse
                     let coords = d3.mouse(info.node())
                     let dragable = d3.select(arr[i]).select('.graph-UI-info-copy span')
 
 
-                    dragable
-                        .style('position', "absolute")
-                        .style('display', "block")
-                        .style('left', coords[0] + "px")
-                        .style('top', coords[1] + "px")
-                        .style('margin-top', "-40px")
-
-                    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-                        dragable.style('margin-top', "-30px")
-                    }
+                    clearTimeout(this.timeout);
+                    this.timeout = setTimeout(() => {
 
 
-                    ///////////////// Force New lines ///////////////////////////
-                    /*positions=[]
-                    info.selectAll('.graph-UI-input>*').each(function(d,i){
-                        positions.push(this.getBoundingClientRect().y)
-                    })
-                    info.selectAll('.graph-UI-input').on('mouseover',function() {
-                        // Get breakID	
-                        info.selectAll('.graph-UI-input>*').each(function(d,i){
-            
-                            if (positions[i]+7<this.getBoundingClientRect().y){
-                                var smallid = this.id.replace('X','')
-                                if ( smallid > 3 && breakID > smallid && this.getAttribute('class') === "div-small"){
-                                    breakID = smallid
+                        // Add gray blocks in Advanced>Formula>Inputs
+                        let divIndex = 1
+                        divFormulas.map((divFormula) => {
+
+
+                            //var divFormula = d3.select(this)
+                            var reg = /(<hr.+?>+)/g // optional whitespaces
+                            var splits = divFormula.html().replace(/  /g, ' ').split(reg).filter(x => x//*.trim()
+                            )
+
+                            // remove empty parts
+
+                            var forhtml = '<div class="div-small" id="X' + divIndex + '">' + '</div>'
+                            divIndex += 1
+
+                            for (var i = 0, j = splits.length; i < j; i += 1) {
+                                if (splits[i].slice(0, 3) === '<hr') {
+                                    forhtml += '<p id="X' + divIndex + '">' + splits[i] + '</p>'
+                                    divIndex += 1
                                 }
+                                else {
+                                    var charsplits = splits[i].split(/\b/g).filter(function (x) { return x.trim() !== '' })
+                                    for (var k = 0, l = charsplits.length; k < l; k += 1) {
+                                        forhtml += '<p id="X' + divIndex + '">' + charsplits[k] + '</p>'
+                                        divIndex += 1
+                                    }
+
+                                }
+                                forhtml += '<div class="div-small" id="X' + divIndex + '">' + '</div>'
+                                divIndex += 1
                             }
+
+                            divFormula.html(forhtml)
+                            divFormula.style('min-height', '60px').style('padding', '10px 0')
+                            divFormula.selectAll('.div-small').style('width', '')
                         })
-                        // Remove other breakIDs
-                        divFormula.selectAll('.graph-UI-input-break').remove()
-                        // New breakID<
-                        if(breakID!==999){
-                            divFormula.insert('div','#X'+(breakID-1)).attr('class','graph-UI-input-break').html('<br/>')
-                            // console.log("break here: X",breakID-1)				
+
+
+
+
+                        dragable
+                            .style('position', "absolute")
+                            .style('display', "block")
+                            .style('left', coords[0] + "px")
+                            .style('top', coords[1] + "px")
+                            .style('margin-top', "-40px")
+
+                        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                            dragable.style('margin-top', "-30px")
                         }
-            
-                    })*/
+
+
+                        ///////////////// Force New lines ///////////////////////////
+                        /*positions=[]
+                        info.selectAll('.graph-UI-input>*').each(function(d,i){
+                            positions.push(this.getBoundingClientRect().y)
+                        })
+                        info.selectAll('.graph-UI-input').on('mouseover',function() {
+                            // Get breakID	
+                            info.selectAll('.graph-UI-input>*').each(function(d,i){
+                
+                                if (positions[i]+7<this.getBoundingClientRect().y){
+                                    var smallid = this.id.replace('X','')
+                                    if ( smallid > 3 && breakID > smallid && this.getAttribute('class') === "div-small"){
+                                        breakID = smallid
+                                    }
+                                }
+                            })
+                            // Remove other breakIDs
+                            divFormula.selectAll('.graph-UI-input-break').remove()
+                            // New breakID<
+                            if(breakID!==999){
+                                divFormula.insert('div','#X'+(breakID-1)).attr('class','graph-UI-input-break').html('<br/>')
+                                // console.log("break here: X",breakID-1)				
+                            }
+                
+                        })*/
+
+                    }, 400);
                 })
                 .on("drag", (d, i, arr) => {
 
@@ -492,7 +517,6 @@ class UI {
                         //breakID = 999
                         //inputBars.selectAll('.graph-UI-input-break').remove()
 
-
                         // Clean up all grey areas
                         inputBars.map((d, i, arr) => { // For each input field		
                             var inputBar = arr[i]
@@ -500,17 +524,20 @@ class UI {
                             if (newForm.split((<HTMLElement>targetDiv).outerHTML).length > 1) { // Only in the right input window
                                 // Update html:
                                 inputBar.html(newForm.split((<HTMLElement>targetDiv).outerHTML)[0].replace(regstr, '') + dragable.attr('data-drop') + newForm.split((<HTMLElement>targetDiv).outerHTML)[1].replace(regstr, ''))
-                                this.decodeFormula()
                             }
                             else {// Other inputs that doesnot contain grey box: rebuilt formula
                                 inputBar.html(inputBar.html().replace(regstr, ''))
                             }
                         })
+                        this.decodeFormula()
                     }
+                    // Go back and do nothing (user missed gray boxes)
                     else {
-                        // Go back and do nothing (user missed gray boxes)
+
                         inputBars.map((d, i, arr) => { // For each input field		
                             var inputBar = arr[i]
+
+                            console.log(3, inputBar.html().replace(regstr, ''))
                             inputBar.html(inputBar.html().replace(regstr, ''))
                         })
                     }
@@ -540,6 +567,6 @@ window.onload = () => {
         //console.log(x.stackMax)
         //console.log(x.stackMax)
         //y.pushFormula();
-        window.scrollTo(0, 0);
+        window.scrollTo(0, 800);
     });
 };

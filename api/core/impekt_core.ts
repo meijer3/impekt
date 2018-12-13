@@ -1,5 +1,5 @@
 ﻿
-  
+
 let settings = {
     margin: { top: 40, right: 0, bottom: 30, left: 90 },
     TypeOfComparison: 1,
@@ -128,14 +128,14 @@ interface Iimpekt {
     excl: string;
     tags: string[];
     date: string;
-    links: number[];
+    links: link[] | number[];
     formula: Iformula[];
     impactdata: any[];
 }
 interface Iformula {
     technical: string
     title: string
-    evalValue?: string
+    evalValue?: any
     readable?: string
     hr?: string
 }
@@ -344,15 +344,16 @@ class variable {
 
     // Elements for this link only
 
-    link_amount: number
+    /*link_amount: number
     link_advanced: boolean
     link_changeable: boolean
     link_date: string
     link_descr: string
     link_linked_id: number
     link_type: graph.typeOfLink
+    link_version: number*/
     link_uid: number
-    link_version: number
+    value: number
 
     // Standard elements for this variable
     long_code_name: string
@@ -384,24 +385,25 @@ class variable {
     elUpdate: d3.Selection<HTMLElement, any, HTMLElement, any>[] = [];
 
 
-    constructor(elControllers: d3.Selection<HTMLElement, any, HTMLElement, any>) {
-        this.elControllers = elControllers // inherit from Graph
+    constructor(/*elControllers: d3.Selection<HTMLElement, any, HTMLElement, any>*/) {
+        //this.elControllers = elControllers // inherit from Graph
 
-        
+
     }
-    fromJSON(json: any) {
-       
+    fromJSON(json: any, value?): variable {
+
         // link values
-        this.link_amount = json.link_amount
+        /*this.link_amount = json.link_amount
         this.link_advanced = json.link_advanced
         this.link_changeable = json.link_changeable
         this.link_date = json.link_date
         this.link_descr = json.link_descr
         this.link_linked_id = json.link_linked_id
         this.link_type = json.link_type
+        this.link_version = json.link_version*/
         this.link_uid = json.link_uid
-        this.link_version = json.link_version
 
+        this.value = 123
         // Variable standards
         this.long_code_name = json.long_code_name
         this.short_code_name = json.short_code_name
@@ -424,9 +426,10 @@ class variable {
         this.alias1 = json.alias1
         this.value2 = json.value2
         this.alias2 = json.alias2
+        return this
     }
-    fromID(var_id):Promise<any> {
-        return new Promise<any>((resolve,reject) => {
+    fromID(var_id): Promise<any> {
+        return new Promise<any>((resolve, reject) => {
             let url = 'https://u39639p35134.web0087.zxcs-klant.nl/api/'
             let xhr = new XMLHttpRequest();
             xhr.open("POST", url, true);
@@ -479,7 +482,7 @@ class variable {
         // Add cells
         row.append('td')
             .attr('class', 'graph-UI-info-copy')
-            .html(`<span data-type="`+this.type+`" data-name="` + this.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + this.short_code_name + `" data-value="usedVari[\`` + this.short_code_name + `\`]">'>` + this.short_code_name + `</span>`)
+            .html(`<span data-type="` + this.type + `" data-name="` + this.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + this.short_code_name + `" data-value="` + this.link_uid + `">'>` + this.short_code_name + `</span>`)
 
         row.append('td')
             .html(this.title + `(` + this.short_code_name + `)`)
@@ -487,7 +490,7 @@ class variable {
         let update = row.append('td')
             .style('text-align', 'right')
             .style('padding-right', '5px')
-            .html(this.link_amount.toString())
+            .html(this.value.toString())
         row.append('td')
             .html(this.unit)
 
@@ -496,12 +499,12 @@ class variable {
     }
     addSlider(callback) {
 
-        let newslider = new sliderVariable(this.min, this.max, this.link_amount, this.short_code_name, this.unit, this.elControllers)
+        let newslider = new sliderVariable(this.min, this.max, this.value, this.short_code_name, this.unit, this.elControllers)
 
         newslider.activate((amount) => {
             this.elUpdate.map((locations) => {
                 locations.html(amount);
-                this.link_amount = amount;
+                this.value = amount;
 
             })
             callback(amount);
@@ -516,7 +519,7 @@ class variable {
         newToggle.activate((amount) => {
             this.elUpdate.map((locations) => {
                 locations.html(amount);
-                this.link_amount = amount;
+                this.value = amount;
             })
 
             callback(amount);
@@ -544,10 +547,6 @@ class variable {
 
 ///////////// Main Graph /////////////
 class graph {
-
-
-
-
 
     TypeOfComparison: graph.TypeOfComparison
     AmountOfComparison: graph.AmountOfComparison
@@ -601,18 +600,6 @@ class graph {
 
     }
 
-    // Add Default buttons
-    addButtons() {
-        let internalStackCompare =
-            new variable(this.elControllers)
-        internalStackCompare.internalStackCompare();
-        internalStackCompare.type = graph.typeOfController.internalStackCompare // ToDo Temp, see overule
-        internalStackCompare.addToggle((TypeOfComparison) => {
-            this.setMode(TypeOfComparison)
-        });
-
-    }
-
     // Start building from constuctor
     buildGraph(): Promise<void> {
         return new Promise((resolve, reject) => {
@@ -629,19 +616,10 @@ class graph {
 
 
 
-                    this.setUsedFields();
-
-
                     this.addVariables();
 
 
-                    this.impekts.map((impekt) => {
-                        impekt.compileFormula((error) => {
-                            this.loader(false);
-                            this.errors(true, error); // Errors: unknown [tags] in formula
-                        })
-                    })
-                    this.update()
+                    this.update(true)
 
                     this.addButtons()
                     this.loader(false);
@@ -654,23 +632,48 @@ class graph {
 
     }
 
-    // Adds variable to impekt so calculations can be done
+    // For all IDs get the data 
+    importData(ids: number[]): Promise<any> {
+
+        // Array of promises
+        let Promises: Promise<any>[] = []
+
+        // For each ID
+        ids.map((id) => {
+
+
+            Promises.push(new impekt(id).databaseRequest(this.variables))
+        });
+
+        return Promise.all(Promises)
+
+    }
+
     addVariables() {
 
 
         // For every variable
-        this.impekts.map(impekt => impekt.impactvariables.map(data => {
-            let oneVariable = new variable(this.elControllers);
-            //console.log(oneVariable)
-            oneVariable.fromJSON(data);
-            //console.log(oneVariable)
-            this.variables.push(oneVariable)
-        }))
-        //Todo? no update
-        this.impekts.map((impekt) => {
-            impekt.variables = this.variables
-        })
+        this.impekts.map(impekt => impekt.links.filter(e => { return e.variable }).map(link => {
 
+            link.variable.elControllers = this.elControllers;
+
+            //Todo? no update
+            this.variables.push(link.variable)
+        }))
+
+
+    }
+
+
+    // Add Default buttons
+    addButtons() {
+        let internalStackCompare = new variable()
+        internalStackCompare.elControllers = this.elControllers
+        internalStackCompare.internalStackCompare();
+        internalStackCompare.type = graph.typeOfController.internalStackCompare // ToDo Temp, see overule
+        internalStackCompare.addToggle((TypeOfComparison) => {
+            this.setMode(TypeOfComparison)
+        });
 
     }
 
@@ -727,22 +730,7 @@ class graph {
         this.update();
     }
 
-    // For all IDs get the data 
-    importData(ids: number[]): Promise<any> {
 
-        // Array of promises
-        let Promises: Promise<any>[] = []
-
-        // For each ID
-        ids.map((id) => {
-            
-
-            Promises.push(new impekt(id).databaseRequest(this.variables))
-        });
-
-        return Promise.all(Promises)
-
-    }
 
     // If graph has any Error go here.
     errors(active: boolean, message?: string, techinal?: any) {
@@ -782,11 +770,23 @@ class graph {
         this.valueArray = [] // Clean
         this.d3DataArray = [] // Clean
 
+        
+        if (redraw) {
+            // set used fields
+            this.setUsedFields();
+            // Check formula
+            this.impekts.map((impekt) => {
+                impekt.compileFormula((error) => {
+                    this.loader(false);
+                    this.errors(true, error); // Errors: unknown [tags] in formula
+                })
+            })
+        }
 
         this.impekts.map((impekt) => {
 
             //Calculate data based on formula
-            impekt.calculateData(this.usedFields, (error, technical) => { this.errors(true, error, technical) }); // Callback: Error
+            impekt.calculateData(this.usedFields, this.variables, (error, technical) => { this.errors(true, error, technical) }); // Callback: Error
 
             // Add calculated data to graph class
             impekt.calculatedData.map((x) => { this.valueArray.push(x) })
@@ -1178,7 +1178,12 @@ module graph {
 
 
 ///////////// Impekts /////////////
+
+
 class impekt implements Iimpekt {
+
+
+
     uid: number;
     impact_id: number;
     version: number;
@@ -1195,22 +1200,25 @@ class impekt implements Iimpekt {
     tags: string[] = []
     date: string;
     edited: boolean;
-    links: number[];
+    links: link[]  = [];
     formula: Iformula[];
-    impactdata: any[] = []
-    impactvariables: any[] = []
-    subimpact: any[] = []
+    impactdata: impektdata[] = []
+
+    impactvariables: any[]
+    subimpact: any[] 
+
     calculatedData: calculatedData[] = []
-    variables: variable[] = [];
+
 
 
     constructor(uid: number) {
         this.uid = uid;
     };
 
-    private bindData(json): impekt {
+    bindData(json): impekt {
 
         try {
+            // Simple fields
             this.uid = json.uid;
             this.impact_id = json.impact_id;
             this.version = json.version;
@@ -1226,16 +1234,39 @@ class impekt implements Iimpekt {
             this.excl = json.excl;
             this.tags = json.tags;
             this.date = json.date;
-            this.links = json.links;
+
+
             this.formula = json.formula;
-            this.impactdata = json.impactdata;
-            this.impactvariables = json.impactvariables;
-            this.subimpact = json.subimpact;
+
+            json.impactdata.map(e => {
+                let newLink = new impektdata(e)
+                this.impactdata.push(newLink)
+
+            })
+
+
+            // include links
+
+            if (Array.isArray(json.impactvariables)) {
+                json.impactvariables.map(e => {
+                    let newLink:link = new link(e)
+                    this.links.push(newLink)
+
+                })
+            }
+
+            if (Array.isArray(json.subimpact)) {
+                json.subimpact.map((e, i) => {
+                    let newLink = new link(e)
+                    this.links.push(newLink)
+                })
+            }
+            console.log( 'Links:', this.links )
             return this;
         }
         catch (e) {
             console.error(e);
-        }        
+        }
 
     };
 
@@ -1254,21 +1285,23 @@ class impekt implements Iimpekt {
                 xhr.onreadystatechange = () => {
                     if (xhr.readyState == 4 && xhr.status == 202) {
 
-                        var jsonData;
+
                         try {
-                            jsonData = JSON.parse(xhr.responseText);
-                            //
+                            let jsonData = JSON.parse(xhr.responseText);
+                            return resolve(this.bindData(jsonData[0]));
+
                         } catch (e) {
                             return reject(xhr.responseText);
                         }
-                        //console.log(this.bindData(jsonData[0]), jsonData)
-                        return resolve(this.bindData(jsonData[0]));
+
 
 
                     } else {
-                        if (  xhr.status != 202) {
-                            console.error('wrong header', xhr.status)
-                            return resolve('headers')
+                        if (xhr.status == 0) {
+                            return reject('Service down')
+                        } else if (xhr.status != 202) {
+                            console.error('wrong header', xhr)
+                            return reject('headers')
                         }
                     }
                 }
@@ -1293,46 +1326,42 @@ class impekt implements Iimpekt {
     }
     compileFormula(callback) {
 
-        //console.log('compiling', this.formula)
+        console.log('compiling', this)
         let reg = /(\[.+?\])/g
         this.formula.map((formula) => { // Per sub formula compile
 
 
-            let codeParts: string[] = formula.technical.toString().split(reg).filter((val) => val)
+            let evalValueParts: any[] = formula.technical.toString().split(reg).filter((val) => val)
             let readParts: string[] = formula.technical.toString().split(reg).filter((val) => val)
             let hrParts: string[] = formula.technical.toString().split(reg).filter((val) => val)
 
 
-            for (var i = 0, j = codeParts.length; i < j; i += 1) {
+            for (var i = 0, j = evalValueParts.length; i < j; i += 1) {
 
-                if (codeParts[i].includes('[')) { // For {items} 
+                if (evalValueParts[i].includes('[')) { // For {items} 
 
-                    var x = codeParts[i].slice(1, -1) // Get value outside []
+                    var x = parseInt(evalValueParts[i].slice(1, -1)) // Get value outside []
 
-                    //
-                    // if (this.impactvariables.map(e => e.short_code_name).indexOf(x) > -1) { // Variables
-                    if (this.variables.map(variable => variable.short_code_name).indexOf(x) > -1) { // Variables
-                        codeParts[i] = 'this.variables[' + this.variables.map(variable => variable.short_code_name).indexOf(x) + '].link_amount'
-                        readParts[i] = x
+                    if (this.links.map(e => e.link_uid).indexOf(x) > -1) {
+
+
+                        let link: link = this.links.filter(e => { return e.link_uid == x })[0]
+                        evalValueParts[i] = link
+                        readParts[i] = link.getAlias()
+                        hrParts[i] = '<hr class="graph-UI-input-tags" data-alias="' + link.getAlias() + '" data-value="' + x + '">'
                     }
-                    else if (this.short_code_name === x) {// Main Impact X
-                        codeParts[i] = 'this.impactdata[0][field]'
-                        readParts[i] = x
-                    }
-                    else if (this.subimpact.map(e => e.short_code_name).indexOf(x) > -1) { // Sub Impact X
-                        codeParts[i] = 'this.subimpact[' + this.subimpact.map(e => e.short_code_name).indexOf(x) + '].impactdata[0][field]'
-                        readParts[i] = x
-                    }
-                    else { // Error							
-                        console.error('getFormula Unknown Tag in Formula: ', x)
-                        /*console.error('codeParts', codeParts[i])
-                        console.error('short_code_name', this.short_code_name)
-                        console.error('subimpact', this.subimpact.map(e => e.short_code_name))
-                        console.error('impactvariables', this.impactvariables.map(e => e.short_code_name))*/
+                    // Error		
+                    else {
+                        console.error('getFormula Unknown Tag in Formula: ', x, this.links.map(e => e.link_uid))
+                        //console.error('codeParts', codeParts[i])
+                        //console.error('short_code_name', this.short_code_name)
+                        //console.error('subimpact', this.subimpact.map(e => e.short_code_name))
+                        //console.error('impactvariables', this.impactvariables.map(e => e.short_code_name))
                         callback('getFormula Unknown Tag in Formula: ' + x);
                     }
 
-                    hrParts[i] = '<hr class="graph-UI-input-tags" data-alias="' + x + '" data-value="' + codeParts[i] + '">'
+
+
                 }
                 else {
                     // Normal characters
@@ -1342,38 +1371,50 @@ class impekt implements Iimpekt {
 
 
 
-            formula.evalValue = codeParts.join('')
+            formula.evalValue = evalValueParts
+
             formula.readable = readParts.join('')
             formula.hr = hrParts.join('')
 
         })
     }
-    calculateData(usedFields: string[], callback) {
+    calculateData(usedFields: string[], given_variable, callback) {
+
+        // Update variables in impekt from Graph
+
 
         this.calculatedData = [] // clean
-        for (var k = 0, groups = this.formula.length; k < groups; k += 1) {
-
-            for (var i = 0, j = this.impactdata.length; i < j; i += 1) { // each field
-                if (this.impactdata[i].dataset == 2) { // now only Q2
-
-                    let calData: calculatedData = { data: [], title: this.formula[k].title };
-                    calData.data =
-                        usedFields.map((field): number => { // for each active field
-
-                            try {// Check if number and catch errors
-                                return isFinite(eval(this.formula[k].evalValue)) && eval(this.formula[k].evalValue) >= 0 ? eval(this.formula[k].evalValue) : 0;
-                            }
-                            catch (e) { // If error, make them readble and go callback!
+        this.formula.map((formula) => {
 
 
-                                callback(this.readableFormulaErrors(e.message, this.formula[k].readable), e.message);
-                            }
-                        })
-                    // Set back to instance
-                    this.calculatedData.push(calData)
-                }
-            }
-        }
+            let calData: calculatedData = { data: [], title: formula.title };
+            calData.data =
+                usedFields.map((field): number => { // for each active field
+
+                    let evalValue = formula.evalValue.map((part: link) => {
+                        // Special link 
+                        if (typeof part == 'object') {
+                            return '(' + part.getValue(field, given_variable) + ')'
+                        }
+                        // Normal formula parts
+                        else {
+                            return part
+                        }
+                    }).join('')
+
+                    try {// Check if number and catch errors
+                        //console.log(evalValue, formula.evalValue, formula.technical)
+                        return isFinite(eval(evalValue)) && eval(evalValue) >= 0 ? eval(evalValue) : 0;
+                    }
+                    catch (e) { // If error, make them readble and go callback!
+                        console.error('Formula:', evalValue, formula.evalValue, formula.technical)
+                        callback(this.readableFormulaErrors(e.message, formula.readable), e.message);
+                    }
+                })
+            // Set back to instance
+            this.calculatedData.push(calData)
+
+        })
 
     }
     readableFormulaErrors(message, formula) {
@@ -1381,15 +1422,19 @@ class impekt implements Iimpekt {
         if (message.indexOf("Cannot read property 'value' of") > -1) {
             mess = 'Cannot find right variable(s):'
         }
+
         if (mess.indexOf("Invalid regular expression") > -1) {
             mess = 'Unexpected start of: <b>/</b> '
         }
         if (mess.indexOf("Unexpected end of input") > -1) {
-            mess = 'Unbalanced formula: <b>( [</b>'
+            mess = 'Unbalanced formula: <b>( [ ] )</b>'
+        }
+        if (mess.indexOf("is not a function") > -1) {
+            mess = 'Missing sign around tag'
         }
         if (mess.indexOf("Invalid or unexpected token") > -1 ||
             mess.indexOf("Unexpected token class") > -1) {
-            mess = 'Unexpected variable '
+            mess = 'Unknown text in formula'
         }
         if (mess.indexOf("Invalid left-hand side expression in postfix operation") > -1 ||
             mess.indexOf("Unexpected identifier") > -1
@@ -1400,22 +1445,109 @@ class impekt implements Iimpekt {
 
     }
 
-    toJson() {
 
 
-        let tempCopy = this
 
-        delete tempCopy.variables 
-        delete tempCopy.calculatedData
+}
+class subimpekt extends impekt {
 
+    constructor(uid: number) {
+        super(uid);
+    };
 
-        return JSON.stringify(this);
+    getSubImpektData(field) {
+        return this.impactdata[0][field];
+    }
+}
+class impektdata {
+    // basic
+    date: string
+    impact_id: number
+    dataset: number
+    uid: number
+    version: number
+
+    // data fields
+    co2: number
+    energy: number
+    polution: number
+    water: number
+    constructor(json) {
+        this.date = json.date
+        this.impact_id = json.impact_id
+        this.dataset = json.dataset
+        this.uid = json.uid
+        this.version = json.version
+
+        // data fields
+        this.co2 = json.co2
+        this.energy = json.energy
+        this.polution = json.polution
+        this.water = json.water
     }
 }
 
 
+class link {
+    link_uid: number;
+    link_version: number;
+    link_linked_id: number;
+    link_date: string;
+    link_type: graph.typeOfLink;
+    link_amount: number;
+    link_advanced: boolean;
+    link_changeable: boolean;
+    link_descr: string;
+    link_alias: string;
+    subimpact: subimpekt;
+    variable: variable;
 
+    constructor(json) {
+        this.link_uid = json.link_uid;
+        this.link_version = json.link_version;
+        this.link_linked_id = json.link_linked_id;
+        this.link_date = json.link_date;
+        this.link_type = json.link_type;
+        this.link_amount = json.link_amount;
+        this.link_advanced = json.link_advanced;
+        this.link_changeable = json.link_changeable;
+        this.link_descr = json.link_descr;
 
+        if (this.link_type == graph.typeOfLink.subimpekt) {
+
+            this.subimpact = new subimpekt(json.uid)
+            this.subimpact.bindData(json);
+
+            this.link_alias = json.short_code_name;
+        }
+        if (this.link_type == graph.typeOfLink.variable) {
+            this.variable = new variable().fromJSON(json);
+
+            this.link_alias = json.short_code_name;
+        }
+    };
+
+    getValue(field, given_variable) {
+        if (this.link_type == graph.typeOfLink.subimpekt) {
+            return this.subimpact.getSubImpektData(field);
+        }
+        if (this.link_type == graph.typeOfLink.variable) {
+            return given_variable.filter((e) => { return e.link_uid == this.link_uid })[0].value
+        }
+    }
+
+    getAlias() {
+        return this.link_alias
+    }
+    /*toJson() {
+        if (this.link_type == graph.typeOfLink.variable) {
+
+        }
+        if (this.link_type == graph.typeOfLink.subimpekt) {
+
+        }
+    }*/
+}
 
 
 

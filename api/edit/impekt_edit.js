@@ -81,6 +81,95 @@ class editUI extends UI {
             }
         };
     }
+    startEdit() {
+        d3.selectAll('[class^="UI-edit"]').remove();
+        this.toggleAdvanced(true);
+        this.addExtraCodes();
+        this.addSaveBlock();
+        this.buttonEdit(d3.select('#graph-UI-title-main'), 'Title', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].title = val; this.graph.impekts[0].edited = true; });
+        this.buttonEdit(d3.select('#graph-UI-title-sub'), 'Sub title', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].sub_title = val; this.graph.impekts[0].edited = true; });
+        this.buttonEdit(d3.select('#graph-UI-long-code'), 'Long code', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].long_code_name = val; this.graph.impekts[0].edited = true; });
+        this.buttonEdit(d3.select('#graph-UI-short-code'), 'Short code', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].short_code_name = val; this.graph.impekts[0].edited = true; });
+        this.buttonEdit(d3.select('#graph-UI-main-group'), 'Main group', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].maingroup = val; this.graph.impekts[0].edited = true; });
+        this.buttonEdit(d3.select('#graph-UI-sub-group'), 'Sub group', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].subgroup = val; this.graph.impekts[0].edited = true; });
+        this.buttonEdit(d3.select('#graph-UI-unit'), 'Unit', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].unit = val; this.graph.impekts[0].edited = true; });
+        this.buttonEdit(d3.select('#graph-UI-uid'), 'UID', editUI.editDivType.notAllowed, (val) => { });
+        this.buttonEdit(d3.select('#graph-UI-id'), 'ID', editUI.editDivType.notAllowed, (val) => { });
+        this.buttonEdit(d3.select('.graph-expl-explanation'), 'Description', editUI.editDivType.multiline, (val) => { this.graph.impekts[0].descr = val; this.graph.impekts[0].edited = true; });
+        this.buttonEdit(d3.select('.graph-expl-exclusions'), 'Exclusions', editUI.editDivType.multiline, (val) => { this.graph.impekts[0].excl = val; this.graph.impekts[0].edited = true; });
+        this.elTable.selectAll('tr[title]').each((d, i, arr) => {
+            new confirmButton(d3.select(arr[i]).append('td').attr('class', "UI-edit-td"), 'x', "UI-edit-delete", "delete", () => {
+                this.removeLink(d3.select(arr[i]));
+            });
+        });
+        this.buttonNewLink(this.elTable);
+        this.elInfo.selectAll('.graph-UI-input-group').each((d, i, arr) => {
+            this.buttonRemoveFormula(arr[i]);
+        });
+        d3.select('.graph-UI-input-block').append('div').html('+ add formula').attr('class', "UI-edit-add-fomrula-part").on('click touch', () => {
+            d3.select(".UI-edit-add-fomrula-part").remove();
+            this.buttonNewFormula();
+        });
+    }
+    removeLink(row) {
+        let span = row.select('td span');
+        let short_code_name = span.attr('data-name');
+        let type = span.attr('data-type');
+        row.remove();
+        d3.select('a[href="#resource_' + short_code_name + '"').remove();
+        if (type == graph.typeOfLink.subimpekt.toString()) {
+            this.removeSubImpekt(short_code_name);
+        }
+        if (type == graph.typeOfLink.variable.toString()) {
+            this.removeVariable(short_code_name);
+        }
+        this.elUI.selectAll('hr[data-alias="' + short_code_name + '"]').style('background', '#ff9595');
+        this.graph.updateFormula(this.graph.impekts[0].formula);
+    }
+    removeSubImpekt(short_code_name) {
+    }
+    removeVariable(short_code_name) {
+        d3.selectAll('.graph-buttons-group>div[title="' + short_code_name + '"]').remove();
+        this.graph.variables = this.graph.variables.filter((vari) => {
+            if (vari.short_code_name !== short_code_name)
+                return vari;
+        });
+    }
+    buttonRemoveFormula(element) {
+        new confirmButton(d3.select(element), 'x', "UI-edit-delete", "delete", () => {
+            let k = parseInt(d3.select(element).attr('data-part'));
+            this.graph.impekts[0].formula = this.graph.impekts[0].formula.filter((part, i) => { if (i !== k)
+                return part; });
+            this.graph.updateFormula(this.graph.impekts[0].formula);
+            this.graph.update(true);
+            this.update();
+            this.startEdit();
+        });
+    }
+    buttonNewFormula() {
+        d3.select(".UI-edit-add-fomrula-part").remove();
+        let len = d3.selectAll('.graph-UI-input-group').nodes().length;
+        let newTitle = 'New part ' + (len + 1);
+        this.addAdvancedFormulaPlus();
+        let newPart = this.addAdvancedFormulaPart(len, newTitle, '');
+        this.buttonRemoveFormula(newPart.node());
+        d3.select('.graph-UI-input-block').append('div').html('+ add formula').attr('class', "UI-edit-add-fomrula-part").on('click touch', () => {
+            this.buttonNewFormula();
+        });
+        this.graph.impekts[0].formula.push({ technical: '', title: newTitle });
+    }
+    buttonNewLink(elTable) {
+        let addRow = elTable.append('tr').style('cursor', 'ititial').attr('class', "UI-edit-row");
+        addRow.append('td');
+        addRow.append('td').html('Add new item');
+        addRow.append('td');
+        addRow.append('td');
+        addRow.append('td').append('span').html('+').attr('class', "UI-edit-add")
+            .attr('title', "add");
+        addRow.on('click touch', (d, i, arr) => {
+            this.overlayerNewLink();
+        });
+    }
     databaseRequestLinks(search, divSuggestions, type) {
         let url = 'https://u39639p35134.web0087.zxcs-klant.nl/api/';
         let xhr = new XMLHttpRequest();
@@ -177,11 +266,11 @@ class editUI extends UI {
         let divSuggestionsVari = divInputVari.append('div').attr('class', 'newItem-suggestions-div');
     }
     addNewVariable(var_id) {
-        let newVariable = new variable(this.graph.elControllers);
+        let newVariable = new variable();
+        newVariable.elControllers = this.graph.elControllers;
         newVariable.elTable = this.elTable;
         newVariable.fromID(var_id).then(() => {
-            newVariable.link_amount = 0;
-            newVariable.link_linked_id = var_id;
+            newVariable.value = 0;
             this.graph.variables.push(newVariable);
             newVariable.addToUI(() => { this.graph.update(); });
             this.overlay.open(false);
@@ -191,7 +280,6 @@ class editUI extends UI {
     addNewSubImpekt(impekt_uid) {
         console.log('add sub impekt_id', impekt_uid);
         this.getNewSubImpekt(impekt_uid).then((subimpekt) => {
-            this.graph.impekts[0].subimpact.push(subimpekt);
             this.addAdvancedSubImpekt(subimpekt);
             this.makeTableRowDraggable();
             this.overlay.open(false);
@@ -217,107 +305,6 @@ class editUI extends UI {
                 }
             };
             xhr.send('x=getSubimpektByID&y=' + impekt_uid);
-        });
-    }
-    startEdit() {
-        d3.selectAll('[class^="UI-edit"]').remove();
-        this.toggleAdvanced(true);
-        this.addExtraCodes();
-        this.addSaveBlock();
-        this.buttonEdit(d3.select('#graph-UI-title-main'), 'Title', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].title = val; });
-        this.buttonEdit(d3.select('#graph-UI-title-sub'), 'Sub title', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].sub_title = val; });
-        this.buttonEdit(d3.select('#graph-UI-long-code'), 'Long code', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].long_code_name = val; });
-        this.buttonEdit(d3.select('#graph-UI-short-code'), 'Short code', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].short_code_name = val; });
-        this.buttonEdit(d3.select('#graph-UI-main-group'), 'Main group', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].maingroup = val; });
-        this.buttonEdit(d3.select('#graph-UI-sub-group'), 'Sub group', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].subgroup = val; });
-        this.buttonEdit(d3.select('#graph-UI-unit'), 'Unit', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].unit = val; });
-        this.buttonEdit(d3.select('#graph-UI-uid'), 'UID', editUI.editDivType.notAllowed, (val) => { });
-        this.buttonEdit(d3.select('#graph-UI-id'), 'ID', editUI.editDivType.notAllowed, (val) => { });
-        this.buttonEdit(d3.select('.graph-expl-explanation'), 'Description', editUI.editDivType.multiline, (val) => { this.graph.impekts[0].descr = val; });
-        this.buttonEdit(d3.select('.graph-expl-exclusions'), 'Exclusions', editUI.editDivType.multiline, (val) => { this.graph.impekts[0].excl = val; });
-        this.elTable.selectAll('tr[title]').each((d, i, arr) => {
-            new confirmButton(d3.select(arr[i]).append('td').attr('class', "UI-edit-td"), 'x', "UI-edit-delete", "delete", () => {
-                this.removeLink(d3.select(arr[i]));
-            });
-        });
-        this.buttonNewLink(this.elTable);
-        this.elInfo.selectAll('.graph-UI-input-group').each((d, i, arr) => {
-            this.buttonRemoveFormula(arr[i]);
-        });
-        d3.select('.graph-UI-input-block').append('div').html('+ add formula').attr('class', "UI-edit-add-fomrula-part").on('click touch', () => {
-            d3.select(".UI-edit-add-fomrula-part").remove();
-            this.buttonNewFormula();
-        });
-    }
-    removeLink(row) {
-        let span = row.select('td span');
-        let short_code_name = span.attr('data-name');
-        let type = span.attr('data-type');
-        row.remove();
-        d3.select('a[href="#resource_' + short_code_name + '"').remove();
-        if (type == graph.typeOfLink.subimpekt.toString()) {
-            this.removeSubImpekt(short_code_name);
-        }
-        if (type == graph.typeOfLink.variable.toString()) {
-            this.removeVariable(short_code_name);
-        }
-        this.elUI.selectAll('hr[data-alias="' + short_code_name + '"]').style('background', '#ff9595');
-        this.graph.updateFormula(this.graph.impekts[0].formula);
-    }
-    removeSubImpekt(short_code_name) {
-        this.graph.impekts[0].subimpact = this.graph.impekts[0].subimpact.filter((subimpekt) => {
-            if (subimpekt.short_code_name !== short_code_name)
-                return subimpekt;
-        });
-    }
-    removeVariable(short_code_name) {
-        d3.selectAll('.graph-buttons-group>div[title="' + short_code_name + '"]').remove();
-        this.graph.impekts[0].impactvariables = this.graph.impekts[0].impactvariables.filter((vari) => {
-            if (vari.short_code_name !== short_code_name)
-                return vari;
-        });
-        this.graph.impekts[0].variables = this.graph.impekts[0].variables.filter((vari) => {
-            if (vari.short_code_name !== short_code_name)
-                return vari;
-        });
-        this.graph.variables = this.graph.variables.filter((vari) => {
-            if (vari.short_code_name !== short_code_name)
-                return vari;
-        });
-    }
-    buttonRemoveFormula(element) {
-        new confirmButton(d3.select(element), 'x', "UI-edit-delete", "delete", () => {
-            let k = parseInt(d3.select(element).attr('data-part'));
-            this.graph.impekts[0].formula = this.graph.impekts[0].formula.filter((part, i) => { if (i !== k)
-                return part; });
-            this.graph.updateFormula(this.graph.impekts[0].formula);
-            this.graph.update(true);
-            this.update();
-            this.startEdit();
-        });
-    }
-    buttonNewFormula() {
-        d3.select(".UI-edit-add-fomrula-part").remove();
-        let len = d3.selectAll('.graph-UI-input-group').nodes().length;
-        let newTitle = 'New part ' + (len + 1);
-        this.addAdvancedFormulaPlus();
-        let newPart = this.addAdvancedFormulaPart(len, newTitle, '');
-        this.buttonRemoveFormula(newPart.node());
-        d3.select('.graph-UI-input-block').append('div').html('+ add formula').attr('class', "UI-edit-add-fomrula-part").on('click touch', () => {
-            this.buttonNewFormula();
-        });
-        this.graph.impekts[0].formula.push({ technical: '', title: newTitle });
-    }
-    buttonNewLink(elTable) {
-        let addRow = elTable.append('tr').style('cursor', 'ititial').attr('class', "UI-edit-row");
-        addRow.append('td');
-        addRow.append('td').html('Add new item');
-        addRow.append('td');
-        addRow.append('td');
-        addRow.append('td').append('span').html('+').attr('class', "UI-edit-add")
-            .attr('title', "add");
-        addRow.on('click touch', (d, i, arr) => {
-            this.overlayerNewLink();
         });
     }
     addExtraCodes() {
@@ -385,16 +372,21 @@ class editUI extends UI {
         });
     }
     databaseRequest(saveDiv) {
+        let timeout;
         saveDiv.select('.UI-edit-div-button').style('display', 'none');
         let editButton = saveDiv.append('span')
             .attr('class', 'UI-edit-div-button UI-edit-div-wait')
             .style('cursor', 'progress')
             .html('<span class="spinner">Wait</span>');
-        this.graph.impekts[0].impactvariables = this.graph.variables;
-        let links = [];
-        this.graph.impekts[0].impactvariables.map((vari) => { links.push(vari.var_id); });
-        this.graph.impekts[0].subimpact.map((subimpact) => { links.push(subimpact.impact_id); });
-        let timeout;
+        delete this.graph.impekts[0].calculatedData;
+        this.graph.impekts[0].formula = this.graph.impekts[0].formula.map(formula => {
+            delete formula.evalValue;
+            delete formula.readable;
+            delete formula.hr;
+            return formula;
+        });
+        let editJSON = JSON.stringify(this.graph.impekts[0]);
+        console.warn(editJSON);
         let promise = new Promise((resolve, reject) => {
             let url = 'https://u39639p35134.web0087.zxcs-klant.nl/api/';
             let xhr = new XMLHttpRequest();
@@ -407,7 +399,6 @@ class editUI extends UI {
                             resolve(JSON.parse(xhr.responseText));
                         }
                         catch (e) {
-                            console.error('Cannot parse', xhr.responseText, 'json was', this.graph.impekts[0].toJson());
                             reject(xhr.responseText);
                         }
                     }
@@ -417,9 +408,10 @@ class editUI extends UI {
                     }
                 }
             };
-            xhr.send('x=setData&y=' + this.graph.impekts[0].toJson());
+            xhr.send('x=setData&y=' + editJSON);
         });
         promise.catch((error) => {
+            console.error('Cannot parse: ', error, ' json was: ', editJSON);
             editButton.html('Error!').attr('class', 'UI-edit-div-button UI-edit-div-error');
             clearTimeout(timeout);
             timeout = setTimeout(() => {

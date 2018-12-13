@@ -15,37 +15,58 @@
     <link rel="stylesheet" type="text/css" href="../edit/impekt_edit.css">
 
 
+
 </head>
 <body>
     <header>
         <div id="header-logo">
-            <svg viewBox="-100 -50 200 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet">
-                <path class="mainline" d="M 9,0 C -25,43 -50,27 -50,0 -50,-27 -25,-43 0,0 25,43 50,27 50,0 50,-27 25,-43 -9,0" stroke="#567ff8" stroke-width="4.5" fill="transparent" stroke-dasharray="149 32 149"></path>
-            </svg>
-            <div id="header-title">Impekt</div>
+            <a id="header-title" href="./index.html">
+                <svg viewBox="-100 -50 200 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet">
+                    <path class="mainline" d="M 9,0 C -25,43 -50,27 -50,0 -50,-27 -25,-43 0,0 25,43 50,27 50,0 50,-27 25,-43 -9,0" stroke="#567ff8" stroke-width="4.5" fill="transparent" stroke-dasharray="149 32 149"></path>
+                </svg>
+                Impekt
+            </a>
         </div>
-        <div id="header-menu">menu</div>
+        <ul class="header-menu">
+            <li><a href="./blog.html">Blog</a></li>
+            <li><a href="./about.html">About</a></li>
+            <li><a href="./contact.html">Contact</a></li>
+        </ul>
+        <div id="header-menu-button"><a onclick="toggleMenu(this)">menu</a></div>
     </header>
     <div id="header-placeholder"></div>
 
 
-    <div class="graph-container">
+    <div id="page">
         <h1 class="graph-title"><span id="graph-UI-title-main"></span><br><span id="graph-UI-title-sub"></span></h1>
-
-
         <div class="graph-graph"><svg id="graph" width="200" height="200"></svg></div>
     </div>
-    <div class="overlay">
-        
-    </div>
 
+
+    <div class="overlay"></div>
 
     <footer>
-        <div id="footer-help">More Aware, Better Earth</div>
-        <div id="footer-contact">Please contact me if you want to help. Impekt 2018</div>
+        <div id="footer-line">More Aware, Better Earth</div>
+        <div id="footer-logo"><svg height="32" width="41" viewBox="-100 -50 200 100" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet"><path class="mainline" d="M 9,0 C -25,43 -50,27 -50,0 -50,-27 -25,-43 0,0 25,43 50,27 50,0 50,-27 25,-43 -9,0" stroke="#fff" stroke-width="4.5" fill="transparent" stroke-dasharray="149 32 149"></path></svg>Impekt 2018</div>
+        <div id="footer-counties">
+            <span>
+                <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="tiny" x="0px" y="0px" width="284px" height="177px" viewBox="0 0 284 177" xml:space="preserve">
+                <rect fill="#FECC07" width="284" height="177"></rect>
+                <rect y="105.6" fill="#016BA8" width="89.7" height="71.4"></rect>
+                <rect fill="#016BA8" width="89.7" height="71.4"></rect>
+                <rect x="123.7" y="105.6" fill="#016BA8" width="160.3" height="71.4"></rect>
+                <rect x="123.7" fill="#016BA8" width="160.3" height="71.4"></rect>
+		</svg>Made in Sweden
+            </span> - <span>
+                Dutch design<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" baseProfile="tiny" x="0px" y="0px" width="284px" height="177px" viewBox="0 0 284 177" xml:space="preserve">
+                <rect fill="#FFFFFF" width="284" height="177"></rect>
+                <rect fill="#AE1F28" width="284" height="59.1"></rect>
+                <rect y="118.3" fill="#20478B" width="284" height="58.7"></rect>
+		</svg>
+            </span>
+        </div>
+        <div id="footer-contact">Please all help is welcome, contact me if you want to help. </div>
     </footer>
-
-
 
 </body>
 </html>

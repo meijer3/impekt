@@ -190,20 +190,12 @@ class sliderVariable {
     }
 }
 class variable {
-    constructor(elControllers) {
+    constructor() {
         this.elUpdate = [];
-        this.elControllers = elControllers;
     }
-    fromJSON(json) {
-        this.link_amount = json.link_amount;
-        this.link_advanced = json.link_advanced;
-        this.link_changeable = json.link_changeable;
-        this.link_date = json.link_date;
-        this.link_descr = json.link_descr;
-        this.link_linked_id = json.link_linked_id;
-        this.link_type = json.link_type;
+    fromJSON(json, value) {
         this.link_uid = json.link_uid;
-        this.link_version = json.link_version;
+        this.value = 123;
         this.long_code_name = json.long_code_name;
         this.short_code_name = json.short_code_name;
         this.sub_title = json.sub_title;
@@ -221,6 +213,7 @@ class variable {
         this.alias1 = json.alias1;
         this.value2 = json.value2;
         this.alias2 = json.alias2;
+        return this;
     }
     fromID(var_id) {
         return new Promise((resolve, reject) => {
@@ -259,23 +252,23 @@ class variable {
             .attr('title', 'drag me into the formula');
         row.append('td')
             .attr('class', 'graph-UI-info-copy')
-            .html(`<span data-type="` + this.type + `" data-name="` + this.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + this.short_code_name + `" data-value="usedVari[\`` + this.short_code_name + `\`]">'>` + this.short_code_name + `</span>`);
+            .html(`<span data-type="` + this.type + `" data-name="` + this.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + this.short_code_name + `" data-value="` + this.link_uid + `">'>` + this.short_code_name + `</span>`);
         row.append('td')
             .html(this.title + `(` + this.short_code_name + `)`);
         let update = row.append('td')
             .style('text-align', 'right')
             .style('padding-right', '5px')
-            .html(this.link_amount.toString());
+            .html(this.value.toString());
         row.append('td')
             .html(this.unit);
         this.elUpdate.push(update);
     }
     addSlider(callback) {
-        let newslider = new sliderVariable(this.min, this.max, this.link_amount, this.short_code_name, this.unit, this.elControllers);
+        let newslider = new sliderVariable(this.min, this.max, this.value, this.short_code_name, this.unit, this.elControllers);
         newslider.activate((amount) => {
             this.elUpdate.map((locations) => {
                 locations.html(amount);
-                this.link_amount = amount;
+                this.value = amount;
             });
             callback(amount);
         });
@@ -285,7 +278,7 @@ class variable {
         newToggle.activate((amount) => {
             this.elUpdate.map((locations) => {
                 locations.html(amount);
-                this.link_amount = amount;
+                this.value = amount;
             });
             callback(amount);
         });
@@ -318,14 +311,6 @@ class graph {
         this.loader(true);
         this.TypeOfComparison = settings.TypeOfComparison;
     }
-    addButtons() {
-        let internalStackCompare = new variable(this.elControllers);
-        internalStackCompare.internalStackCompare();
-        internalStackCompare.type = graph.typeOfController.internalStackCompare;
-        internalStackCompare.addToggle((TypeOfComparison) => {
-            this.setMode(TypeOfComparison);
-        });
-    }
     buildGraph() {
         return new Promise((resolve, reject) => {
             this.importData(settings.ids)
@@ -337,29 +322,34 @@ class graph {
                 .then((arrayOfImpekts) => {
                 this.impekts = arrayOfImpekts;
                 this.AmountOfComparison = (this.impekts.length === 1) ? graph.AmountOfComparison.one : graph.AmountOfComparison.multiples;
-                this.setUsedFields();
                 this.addVariables();
-                this.impekts.map((impekt) => {
-                    impekt.compileFormula((error) => {
-                        this.loader(false);
-                        this.errors(true, error);
-                    });
-                });
-                this.update();
+                this.update(true);
                 this.addButtons();
                 this.loader(false);
                 resolve();
             });
         });
     }
+    importData(ids) {
+        let Promises = [];
+        ids.map((id) => {
+            Promises.push(new impekt(id).databaseRequest(this.variables));
+        });
+        return Promise.all(Promises);
+    }
     addVariables() {
-        this.impekts.map(impekt => impekt.impactvariables.map(data => {
-            let oneVariable = new variable(this.elControllers);
-            oneVariable.fromJSON(data);
-            this.variables.push(oneVariable);
+        this.impekts.map(impekt => impekt.links.filter(e => { return e.variable; }).map(link => {
+            link.variable.elControllers = this.elControllers;
+            this.variables.push(link.variable);
         }));
-        this.impekts.map((impekt) => {
-            impekt.variables = this.variables;
+    }
+    addButtons() {
+        let internalStackCompare = new variable();
+        internalStackCompare.elControllers = this.elControllers;
+        internalStackCompare.internalStackCompare();
+        internalStackCompare.type = graph.typeOfController.internalStackCompare;
+        internalStackCompare.addToggle((TypeOfComparison) => {
+            this.setMode(TypeOfComparison);
         });
     }
     setUsedFields() {
@@ -392,13 +382,6 @@ class graph {
         this.TypeOfComparison = mode;
         this.update();
     }
-    importData(ids) {
-        let Promises = [];
-        ids.map((id) => {
-            Promises.push(new impekt(id).databaseRequest(this.variables));
-        });
-        return Promise.all(Promises);
-    }
     errors(active, message, techinal) {
         if (active) {
             this.errorState = true;
@@ -429,8 +412,17 @@ class graph {
         this.errorState = false;
         this.valueArray = [];
         this.d3DataArray = [];
+        if (redraw) {
+            this.setUsedFields();
+            this.impekts.map((impekt) => {
+                impekt.compileFormula((error) => {
+                    this.loader(false);
+                    this.errors(true, error);
+                });
+            });
+        }
         this.impekts.map((impekt) => {
-            impekt.calculateData(this.usedFields, (error, technical) => { this.errors(true, error, technical); });
+            impekt.calculateData(this.usedFields, this.variables, (error, technical) => { this.errors(true, error, technical); });
             impekt.calculatedData.map((x) => { this.valueArray.push(x); });
         });
         if (!this.errorState)
@@ -730,11 +722,9 @@ class graph {
 class impekt {
     constructor(uid) {
         this.tags = [];
+        this.links = [];
         this.impactdata = [];
-        this.impactvariables = [];
-        this.subimpact = [];
         this.calculatedData = [];
-        this.variables = [];
         this.uid = uid;
     }
     ;
@@ -755,11 +745,24 @@ class impekt {
             this.excl = json.excl;
             this.tags = json.tags;
             this.date = json.date;
-            this.links = json.links;
             this.formula = json.formula;
-            this.impactdata = json.impactdata;
-            this.impactvariables = json.impactvariables;
-            this.subimpact = json.subimpact;
+            json.impactdata.map(e => {
+                let newLink = new impektdata(e);
+                this.impactdata.push(newLink);
+            });
+            if (Array.isArray(json.impactvariables)) {
+                json.impactvariables.map(e => {
+                    let newLink = new link(e);
+                    this.links.push(newLink);
+                });
+            }
+            if (Array.isArray(json.subimpact)) {
+                json.subimpact.map((e, i) => {
+                    let newLink = new link(e);
+                    this.links.push(newLink);
+                });
+            }
+            console.log('Links:', this.links);
             return this;
         }
         catch (e) {
@@ -777,19 +780,21 @@ class impekt {
                 xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
                 xhr.onreadystatechange = () => {
                     if (xhr.readyState == 4 && xhr.status == 202) {
-                        var jsonData;
                         try {
-                            jsonData = JSON.parse(xhr.responseText);
+                            let jsonData = JSON.parse(xhr.responseText);
+                            return resolve(this.bindData(jsonData[0]));
                         }
                         catch (e) {
                             return reject(xhr.responseText);
                         }
-                        return resolve(this.bindData(jsonData[0]));
                     }
                     else {
-                        if (xhr.status != 202) {
-                            console.error('wrong header', xhr.status);
-                            return resolve('headers');
+                        if (xhr.status == 0) {
+                            return reject('Service down');
+                        }
+                        else if (xhr.status != 202) {
+                            console.error('wrong header', xhr);
+                            return reject('headers');
                         }
                     }
                 };
@@ -807,59 +812,58 @@ class impekt {
         this.compileFormula(callback);
     }
     compileFormula(callback) {
+        console.log('compiling', this);
         let reg = /(\[.+?\])/g;
         this.formula.map((formula) => {
-            let codeParts = formula.technical.toString().split(reg).filter((val) => val);
+            let evalValueParts = formula.technical.toString().split(reg).filter((val) => val);
             let readParts = formula.technical.toString().split(reg).filter((val) => val);
             let hrParts = formula.technical.toString().split(reg).filter((val) => val);
-            for (var i = 0, j = codeParts.length; i < j; i += 1) {
-                if (codeParts[i].includes('[')) {
-                    var x = codeParts[i].slice(1, -1);
-                    if (this.variables.map(variable => variable.short_code_name).indexOf(x) > -1) {
-                        codeParts[i] = 'this.variables[' + this.variables.map(variable => variable.short_code_name).indexOf(x) + '].link_amount';
-                        readParts[i] = x;
-                    }
-                    else if (this.short_code_name === x) {
-                        codeParts[i] = 'this.impactdata[0][field]';
-                        readParts[i] = x;
-                    }
-                    else if (this.subimpact.map(e => e.short_code_name).indexOf(x) > -1) {
-                        codeParts[i] = 'this.subimpact[' + this.subimpact.map(e => e.short_code_name).indexOf(x) + '].impactdata[0][field]';
-                        readParts[i] = x;
+            for (var i = 0, j = evalValueParts.length; i < j; i += 1) {
+                if (evalValueParts[i].includes('[')) {
+                    var x = parseInt(evalValueParts[i].slice(1, -1));
+                    if (this.links.map(e => e.link_uid).indexOf(x) > -1) {
+                        let link = this.links.filter(e => { return e.link_uid == x; })[0];
+                        evalValueParts[i] = link;
+                        readParts[i] = link.getAlias();
+                        hrParts[i] = '<hr class="graph-UI-input-tags" data-alias="' + link.getAlias() + '" data-value="' + x + '">';
                     }
                     else {
-                        console.error('getFormula Unknown Tag in Formula: ', x);
+                        console.error('getFormula Unknown Tag in Formula: ', x, this.links.map(e => e.link_uid));
                         callback('getFormula Unknown Tag in Formula: ' + x);
                     }
-                    hrParts[i] = '<hr class="graph-UI-input-tags" data-alias="' + x + '" data-value="' + codeParts[i] + '">';
                 }
                 else {
                 }
             }
-            formula.evalValue = codeParts.join('');
+            formula.evalValue = evalValueParts;
             formula.readable = readParts.join('');
             formula.hr = hrParts.join('');
         });
     }
-    calculateData(usedFields, callback) {
+    calculateData(usedFields, given_variable, callback) {
         this.calculatedData = [];
-        for (var k = 0, groups = this.formula.length; k < groups; k += 1) {
-            for (var i = 0, j = this.impactdata.length; i < j; i += 1) {
-                if (this.impactdata[i].dataset == 2) {
-                    let calData = { data: [], title: this.formula[k].title };
-                    calData.data =
-                        usedFields.map((field) => {
-                            try {
-                                return isFinite(eval(this.formula[k].evalValue)) && eval(this.formula[k].evalValue) >= 0 ? eval(this.formula[k].evalValue) : 0;
-                            }
-                            catch (e) {
-                                callback(this.readableFormulaErrors(e.message, this.formula[k].readable), e.message);
-                            }
-                        });
-                    this.calculatedData.push(calData);
-                }
-            }
-        }
+        this.formula.map((formula) => {
+            let calData = { data: [], title: formula.title };
+            calData.data =
+                usedFields.map((field) => {
+                    let evalValue = formula.evalValue.map((part) => {
+                        if (typeof part == 'object') {
+                            return '(' + part.getValue(field, given_variable) + ')';
+                        }
+                        else {
+                            return part;
+                        }
+                    }).join('');
+                    try {
+                        return isFinite(eval(evalValue)) && eval(evalValue) >= 0 ? eval(evalValue) : 0;
+                    }
+                    catch (e) {
+                        console.error('Formula:', evalValue, formula.evalValue, formula.technical);
+                        callback(this.readableFormulaErrors(e.message, formula.readable), e.message);
+                    }
+                });
+            this.calculatedData.push(calData);
+        });
     }
     readableFormulaErrors(message, formula) {
         let mess = message;
@@ -870,11 +874,14 @@ class impekt {
             mess = 'Unexpected start of: <b>/</b> ';
         }
         if (mess.indexOf("Unexpected end of input") > -1) {
-            mess = 'Unbalanced formula: <b>( [</b>';
+            mess = 'Unbalanced formula: <b>( [ ] )</b>';
+        }
+        if (mess.indexOf("is not a function") > -1) {
+            mess = 'Missing sign around tag';
         }
         if (mess.indexOf("Invalid or unexpected token") > -1 ||
             mess.indexOf("Unexpected token class") > -1) {
-            mess = 'Unexpected variable ';
+            mess = 'Unknown text in formula';
         }
         if (mess.indexOf("Invalid left-hand side expression in postfix operation") > -1 ||
             mess.indexOf("Unexpected identifier") > -1) {
@@ -882,10 +889,60 @@ class impekt {
         }
         return '<b>Formula error:</b><br/> ' + mess + '<br/><i>' + formula + '</i>';
     }
-    toJson() {
-        let tempCopy = this;
-        delete tempCopy.variables;
-        delete tempCopy.calculatedData;
-        return JSON.stringify(this);
+}
+class subimpekt extends impekt {
+    constructor(uid) {
+        super(uid);
+    }
+    ;
+    getSubImpektData(field) {
+        return this.impactdata[0][field];
+    }
+}
+class impektdata {
+    constructor(json) {
+        this.date = json.date;
+        this.impact_id = json.impact_id;
+        this.dataset = json.dataset;
+        this.uid = json.uid;
+        this.version = json.version;
+        this.co2 = json.co2;
+        this.energy = json.energy;
+        this.polution = json.polution;
+        this.water = json.water;
+    }
+}
+class link {
+    constructor(json) {
+        this.link_uid = json.link_uid;
+        this.link_version = json.link_version;
+        this.link_linked_id = json.link_linked_id;
+        this.link_date = json.link_date;
+        this.link_type = json.link_type;
+        this.link_amount = json.link_amount;
+        this.link_advanced = json.link_advanced;
+        this.link_changeable = json.link_changeable;
+        this.link_descr = json.link_descr;
+        if (this.link_type == graph.typeOfLink.subimpekt) {
+            this.subimpact = new subimpekt(json.uid);
+            this.subimpact.bindData(json);
+            this.link_alias = json.short_code_name;
+        }
+        if (this.link_type == graph.typeOfLink.variable) {
+            this.variable = new variable().fromJSON(json);
+            this.link_alias = json.short_code_name;
+        }
+    }
+    ;
+    getValue(field, given_variable) {
+        if (this.link_type == graph.typeOfLink.subimpekt) {
+            return this.subimpact.getSubImpektData(field);
+        }
+        if (this.link_type == graph.typeOfLink.variable) {
+            return given_variable.filter((e) => { return e.link_uid == this.link_uid; })[0].value;
+        }
+    }
+    getAlias() {
+        return this.link_alias;
     }
 }

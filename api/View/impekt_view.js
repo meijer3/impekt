@@ -1,10 +1,13 @@
+function toggleMenu(x) {
+    x.parentNode.parentNode.classList.toggle("header-menu-open");
+}
 class UI {
     constructor(graph) {
         this.title = '';
         this.subtitle = '';
         this.elAdvancedForm = [];
         this.graph = graph;
-        this.elUI = d3.select('.graph-container').append('div').attr('class', 'graph-UI-group');
+        this.elUI = d3.select('#page').append('div').attr('class', 'graph-UI-group');
         this.elAdvanced = this.elUI.append('div').attr('class', 'graph-UI-advanced');
         this.elFormula = this.elUI.append('div').attr('class', 'graph-UI-formula');
         this.elImpekt = this.elUI.append('div').attr('class', 'graph-UI-impekt');
@@ -16,10 +19,11 @@ class UI {
             this.addOverviewFormula();
             this.addAdvanced();
             this.addAdvancedFormula();
-            this.addImpekt();
+            this.addImpektDesc();
             this.addResource();
         }
         this.addVariable();
+        this.makeTableRowDraggable();
     }
     addVariable() {
         this.graph.variables.map((variable) => {
@@ -40,7 +44,7 @@ class UI {
                 .filter(x => x)
                 .map((x) => {
                 if (x.indexOf('<hr') === 0) {
-                    let value = x.match(/data-alias=".*?"/g)[0];
+                    let value = x.match(/data-value=".*?"/g)[0];
                     return ('[' + value.substring(12, value.length - 1) + ']');
                 }
                 else {
@@ -48,7 +52,7 @@ class UI {
                 }
             })
                 .join('');
-            let newFormulaPart = { title: this.graph.impekts[0].formula[k].title, technical: technicalFormula };
+            let newFormulaPart = { title: d3.select('#graph_ui_input_edit_' + k).property('value'), technical: technicalFormula };
             newFormula.push(newFormulaPart);
         });
         this.graph.impekts[0].edited = true;
@@ -116,11 +120,10 @@ class UI {
         this.elInfo.style('max-height', '0px');
         this.elTable = this.elInfo.append('table');
         this.elTable.append('tr').html("<th></th><th>Forumla</th><th colspan='2' style='text-align:center;	padding: 5px 20px 5px 0;' >Value</th><th></th>");
-        this.graph.impekts[0].subimpact.map((subImpekt) => {
-            this.addAdvancedSubImpekt(subImpekt);
+        y.graph.impekts[0].links.filter(e => e.subimpact).map((link) => {
+            this.addAdvancedSubImpekt(link);
         });
         this.elAdvancedError = this.elInfo.append('div').attr('class', 'graph-UI-info-error');
-        this.makeTableRowDraggable();
     }
     addAdvancedFormula() {
         let singleImpekt = this.graph.impekts[0];
@@ -136,6 +139,7 @@ class UI {
         }
     }
     addAdvancedFormulaPart(k, title, formula) {
+        console.log(k, title, formula);
         let group = d3.select('.graph-UI-input-block')
             .append('div')
             .attr('class', 'graph-UI-input-group')
@@ -159,7 +163,17 @@ class UI {
             .style('border-left', ' solid 6px' + color[k])
             .html(formula)
             .on('keyup paste copy cut', () => {
-            if ([16, 17, 18, 32, 27, 37, 38, 39, 40].indexOf(d3.event.keyCode) < 0) {
+            if (d3.event.keyCode == 13) {
+                el.html(el.html().split('<br>').join(''));
+            }
+            if ([16,
+                17,
+                18,
+                13,
+                32,
+                27,
+                37, 38, 39, 40
+            ].indexOf(d3.event.keyCode) < 0) {
                 clearTimeout(this.timeout);
                 this.timeout = setTimeout(() => { this.decodeFormula(); }, 400);
             }
@@ -179,17 +193,18 @@ class UI {
             .style('height', '13px')
             .style('padding-top', '7px');
     }
-    addAdvancedSubImpekt(e) {
+    addAdvancedSubImpekt(link) {
+        let subimpekt = link.subimpact;
         this.elTable.append('tr')
             .attr('class', 'graph-UI-table-tr graph-UI-table-impact')
             .attr('title', 'drag me into the formula')
             .html(`
-                    <td class="graph-UI-info-copy"><span data-type="` + graph.typeOfLink.subimpekt + `" data-name="` + e.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + e.short_code_name + `" data-value="dataset[0].subimpact[` + e.localid + `].impactdata[0][field]">'>` + e.short_code_name + `</span></td>
-                    <td>` + e.title + ` (` + e.short_code_name + `)</td>
-                    <td colspan='2' style='text-align:center;' class='vari_` + e.short_code_name + `'><a href='#id_` + e.short_code_name + `' title='More information'>Fixed</a></td>
+                    <td class="graph-UI-info-copy"><span data-type="` + graph.typeOfLink.subimpekt + `" data-name="` + subimpekt.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + subimpekt.short_code_name + `" data-value="` + link.link_uid + `">'>` + subimpekt.short_code_name + `</span></td>
+                    <td>` + subimpekt.title + ` (` + subimpekt.short_code_name + `)</td>
+                    <td colspan='2' style='text-align:center;' class='vari_` + subimpekt.short_code_name + `'><a href='#id_` + subimpekt.short_code_name + `' title='More information'>Fixed</a></td>
                 `);
     }
-    addImpekt() {
+    addImpektDesc() {
         this.elImpekt.html('');
         let singleImpekt = this.graph.impekts[0];
         if (singleImpekt.descr) {
@@ -204,14 +219,8 @@ class UI {
     addResource() {
         let list = [];
         this.graph.impekts.map(impekt => {
-            impekt.impactvariables.map((vari) => {
-                list.push(vari.short_code_name);
-            });
         });
         this.graph.impekts.map(impekt => {
-            impekt.subimpact.map((subs) => {
-                list.push(subs.short_code_name);
-            });
         });
         var inlc = this.elImpekt.append('p').attr('class', 'graph-expl-included').html('<h4>Including</h4>');
         list.map(x => inlc.append('a').html('<a href="#resource_' + x + '">' + x + '</a>'));
@@ -243,42 +252,45 @@ class UI {
             .on("start", (d, i, arr) => {
             let info = this.elInfo;
             let divFormulas = this.elAdvancedForm;
-            let divIndex = 1;
-            divFormulas.map((divFormula) => {
-                var reg = /(<hr.+?>+)/g;
-                var splits = divFormula.html().replace(/  /g, ' ').split(reg).filter(x => x);
-                var forhtml = '<div class="div-small" id="X' + divIndex + '">' + '</div>';
-                divIndex += 1;
-                for (var i = 0, j = splits.length; i < j; i += 1) {
-                    if (splits[i].slice(0, 3) === '<hr') {
-                        forhtml += '<p id="X' + divIndex + '">' + splits[i] + '</p>';
-                        divIndex += 1;
-                    }
-                    else {
-                        var charsplits = splits[i].split(/\b/g).filter(function (x) { return x.trim() !== ''; });
-                        for (var k = 0, l = charsplits.length; k < l; k += 1) {
-                            forhtml += '<p id="X' + divIndex + '">' + charsplits[k] + '</p>';
-                            divIndex += 1;
-                        }
-                    }
-                    forhtml += '<div class="div-small" id="X' + divIndex + '">' + '</div>';
-                    divIndex += 1;
-                }
-                divFormula.html(forhtml);
-                divFormula.style('min-height', '60px').style('padding', '10px 0');
-                divFormula.selectAll('.div-small').style('width', '');
-            });
             let coords = d3.mouse(info.node());
             let dragable = d3.select(arr[i]).select('.graph-UI-info-copy span');
-            dragable
-                .style('position', "absolute")
-                .style('display', "block")
-                .style('left', coords[0] + "px")
-                .style('top', coords[1] + "px")
-                .style('margin-top', "-40px");
-            if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-                dragable.style('margin-top', "-30px");
-            }
+            clearTimeout(this.timeout);
+            this.timeout = setTimeout(() => {
+                let divIndex = 1;
+                divFormulas.map((divFormula) => {
+                    var reg = /(<hr.+?>+)/g;
+                    var splits = divFormula.html().replace(/  /g, ' ').split(reg).filter(x => x);
+                    var forhtml = '<div class="div-small" id="X' + divIndex + '">' + '</div>';
+                    divIndex += 1;
+                    for (var i = 0, j = splits.length; i < j; i += 1) {
+                        if (splits[i].slice(0, 3) === '<hr') {
+                            forhtml += '<p id="X' + divIndex + '">' + splits[i] + '</p>';
+                            divIndex += 1;
+                        }
+                        else {
+                            var charsplits = splits[i].split(/\b/g).filter(function (x) { return x.trim() !== ''; });
+                            for (var k = 0, l = charsplits.length; k < l; k += 1) {
+                                forhtml += '<p id="X' + divIndex + '">' + charsplits[k] + '</p>';
+                                divIndex += 1;
+                            }
+                        }
+                        forhtml += '<div class="div-small" id="X' + divIndex + '">' + '</div>';
+                        divIndex += 1;
+                    }
+                    divFormula.html(forhtml);
+                    divFormula.style('min-height', '60px').style('padding', '10px 0');
+                    divFormula.selectAll('.div-small').style('width', '');
+                });
+                dragable
+                    .style('position', "absolute")
+                    .style('display', "block")
+                    .style('left', coords[0] + "px")
+                    .style('top', coords[1] + "px")
+                    .style('margin-top', "-40px");
+                if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                    dragable.style('margin-top', "-30px");
+                }
+            }, 400);
         })
             .on("drag", (d, i, arr) => {
             let info = this.elInfo;
@@ -307,16 +319,17 @@ class UI {
                     var newForm = inputBar.html();
                     if (newForm.split(targetDiv.outerHTML).length > 1) {
                         inputBar.html(newForm.split(targetDiv.outerHTML)[0].replace(regstr, '') + dragable.attr('data-drop') + newForm.split(targetDiv.outerHTML)[1].replace(regstr, ''));
-                        this.decodeFormula();
                     }
                     else {
                         inputBar.html(inputBar.html().replace(regstr, ''));
                     }
                 });
+                this.decodeFormula();
             }
             else {
                 inputBars.map((d, i, arr) => {
                     var inputBar = arr[i];
+                    console.log(3, inputBar.html().replace(regstr, ''));
                     inputBar.html(inputBar.html().replace(regstr, ''));
                 });
             }
@@ -332,6 +345,6 @@ window.onload = () => {
     x.buildGraph().then(() => {
         y.update();
         y.toggleAdvanced(true);
-        window.scrollTo(0, 0);
+        window.scrollTo(0, 800);
     });
 };

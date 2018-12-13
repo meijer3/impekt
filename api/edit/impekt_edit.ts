@@ -85,6 +85,159 @@ class confirmButton {
 
 
 class editUI extends UI {
+    editActive: boolean = false;
+    overlay: overlay = new overlay();
+
+    // Empty, do to promise
+    constructor(graph: graph) {
+        super(graph)
+
+    }
+
+    // Start in promise of graph (not in contructor)
+    startEdit() {
+
+        // Remove everything of a previous session
+        d3.selectAll('[class^="UI-edit"]').remove()
+
+        // Open the Advanced window
+        this.toggleAdvanced(true);
+
+        //Adds codes like short-code-name
+        this.addExtraCodes()
+
+
+        // Add the main save block
+        this.addSaveBlock()
+
+
+        // Add adding buttons to some of the elements
+        this.buttonEdit(d3.select('#graph-UI-title-main'), 'Title', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].title = val; this.graph.impekts[0].edited = true })
+        this.buttonEdit(d3.select('#graph-UI-title-sub'), 'Sub title', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].sub_title = val; this.graph.impekts[0].edited = true })
+        this.buttonEdit(d3.select('#graph-UI-long-code'), 'Long code', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].long_code_name = val; this.graph.impekts[0].edited = true })
+        this.buttonEdit(d3.select('#graph-UI-short-code'), 'Short code', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].short_code_name = val; this.graph.impekts[0].edited = true })
+        this.buttonEdit(d3.select('#graph-UI-main-group'), 'Main group', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].maingroup = val; this.graph.impekts[0].edited = true })
+        this.buttonEdit(d3.select('#graph-UI-sub-group'), 'Sub group', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].subgroup = val; this.graph.impekts[0].edited = true })
+        this.buttonEdit(d3.select('#graph-UI-unit'), 'Unit', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].unit = val; this.graph.impekts[0].edited = true })
+        this.buttonEdit(d3.select('#graph-UI-uid'), 'UID', editUI.editDivType.notAllowed, (val) => { })
+        this.buttonEdit(d3.select('#graph-UI-id'), 'ID', editUI.editDivType.notAllowed, (val) => { })
+
+        this.buttonEdit(d3.select('.graph-expl-explanation'), 'Description', editUI.editDivType.multiline, (val) => { this.graph.impekts[0].descr = val; this.graph.impekts[0].edited = true })
+        this.buttonEdit(d3.select('.graph-expl-exclusions'), 'Exclusions', editUI.editDivType.multiline, (val) => { this.graph.impekts[0].excl = val; this.graph.impekts[0].edited = true })
+
+
+        // Advanced block
+        this.elTable.selectAll('tr[title]').each((d, i, arr) => {
+            new confirmButton(d3.select(arr[i]).append('td').attr('class', "UI-edit-td"), 'x', "UI-edit-delete", "delete", () => {
+                this.removeLink(d3.select(arr[i]))
+            })
+        })
+        // Adds add button for new Links
+        this.buttonNewLink(this.elTable)
+
+
+
+        this.elInfo.selectAll('.graph-UI-input-group').each((d, i, arr) => {
+            this.buttonRemoveFormula(arr[i])
+        })
+
+        d3.select('.graph-UI-input-block').append('div').html('+ add formula').attr('class', "UI-edit-add-fomrula-part").on('click touch', () => {
+            d3.select(".UI-edit-add-fomrula-part").remove()
+            this.buttonNewFormula()
+        })
+        //this.overlayerNewLink()
+        //d3.selectAll(".newItem-input-div-vari .newItem-input").dispatch('keyup');
+    }
+
+
+    // Advanced table edits
+    removeLink(row) {
+        let span = row.select('td span');
+        let short_code_name = span.attr('data-name')
+        let type = span.attr('data-type')
+
+
+
+
+        // remove from table
+        row.remove()
+
+        // remove including tag
+        d3.select('a[href="#resource_' + short_code_name + '"').remove()
+
+
+        // Remove from data
+        if (type == graph.typeOfLink.subimpekt.toString()) { this.removeSubImpekt(short_code_name) }
+        if (type == graph.typeOfLink.variable.toString()) { this.removeVariable(short_code_name) }
+
+
+        // update once to get errors
+        this.elUI.selectAll('hr[data-alias="' + short_code_name + '"]').style('background', '#ff9595')
+        this.graph.updateFormula(this.graph.impekts[0].formula)
+    }
+    removeSubImpekt(short_code_name) {
+        // Remove from data
+        /*this.graph.impekts[0].subimpact = this.graph.impekts[0].subimpact.filter((subimpekt) => {
+            if (subimpekt.short_code_name !== short_code_name) return subimpekt
+        })*/
+    }
+    removeVariable(short_code_name) {
+
+        // Delete variable controller
+        d3.selectAll('.graph-buttons-group>div[title="' + short_code_name + '"]').remove()
+
+        // Remove from data
+        /*this.graph.impekts[0].impactvariables = this.graph.impekts[0].impactvariables.filter((vari) => {
+            if (vari.short_code_name !== short_code_name) return vari
+        })*/
+        // ToDo fix this double, 
+        // Remove from variables
+        /*this.graph.impekts[0].variables = this.graph.impekts[0].variables.filter((vari) => {
+            if (vari.short_code_name !== short_code_name) return vari
+        })*/
+        this.graph.variables = this.graph.variables.filter((vari) => {
+            if (vari.short_code_name !== short_code_name) return vari
+        })
+    }
+    buttonRemoveFormula(element) {
+        new confirmButton(d3.select(element), 'x', "UI-edit-delete", "delete", () => {
+            let k = parseInt(d3.select(element).attr('data-part'))
+            this.graph.impekts[0].formula = this.graph.impekts[0].formula.filter((part, i) => { if (i !== k) return part })
+            this.graph.updateFormula(this.graph.impekts[0].formula)
+            this.graph.update(true);
+            this.update();
+            this.startEdit()
+        })
+    }
+    buttonNewFormula() {
+        //remove previous
+        d3.select(".UI-edit-add-fomrula-part").remove()
+        let len = d3.selectAll('.graph-UI-input-group').nodes().length
+
+        let newTitle = 'New part ' + (len + 1)
+
+        this.addAdvancedFormulaPlus()
+        let newPart = this.addAdvancedFormulaPart(len, newTitle, '')
+        this.buttonRemoveFormula(newPart.node())
+        d3.select('.graph-UI-input-block').append('div').html('+ add formula').attr('class', "UI-edit-add-fomrula-part").on('click touch', () => {
+            this.buttonNewFormula()
+        })
+        this.graph.impekts[0].formula.push({ technical: '', title: newTitle })
+    }
+    buttonNewLink(elTable) {
+        let addRow = elTable.append('tr').style('cursor', 'ititial').attr('class', "UI-edit-row")
+        addRow.append('td')
+        addRow.append('td').html('Add new item')
+        addRow.append('td')
+        addRow.append('td')
+        addRow.append('td').append('span').html('+').attr('class', "UI-edit-add")
+            .attr('title', "add")
+
+        addRow.on('click touch', (d, i, arr) => {
+            this.overlayerNewLink()
+        })
+    }
+
 
     databaseRequestLinks(search: string, divSuggestions: d3.Selection<HTMLDivElement, {}, HTMLElement, any>, type: number) {
 
@@ -224,12 +377,13 @@ class editUI extends UI {
     addNewVariable(var_id) {
 
         // Get variable
-        let newVariable = new variable(this.graph.elControllers)
+        let newVariable = new variable()
+        newVariable.elControllers = this.graph.elControllers;
         newVariable.elTable = this.elTable;
         newVariable.fromID(var_id).then(() => {
             // Defaults
-            newVariable.link_amount = 0
-            newVariable.link_linked_id = var_id
+            newVariable.value = 0
+            //newVariable.link_linked_id = var_id
 
             // Add to data
             this.graph.variables.push(newVariable);
@@ -252,7 +406,7 @@ class editUI extends UI {
 
 
             // Add to data
-            this.graph.impekts[0].subimpact.push(subimpekt);
+            //this.graph.impekts[0].subimpact.push(subimpekt);
 
             // Add to table
             this.addAdvancedSubImpekt(subimpekt)
@@ -296,166 +450,6 @@ class editUI extends UI {
 
 
     }
-
-
-    editActive: boolean = false;
-    overlay: overlay = new overlay();
-
-    // Empty, do to promise
-    constructor(graph: graph) {
-        super(graph)
-
-    }
-
-    // Start in promise of graph (not in contructor)
-    startEdit() {
-
-        // Remove everything of a previous session
-        d3.selectAll('[class^="UI-edit"]').remove()
-
-        // Open the Advanced window
-        this.toggleAdvanced(true);
-
-        //Adds codes like short-code-name
-        this.addExtraCodes()
-
-
-        // Add the main save block
-        this.addSaveBlock()
-
-
-        // Add adding buttons to some of the elements
-        this.buttonEdit(d3.select('#graph-UI-title-main'), 'Title', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].title = val })
-        this.buttonEdit(d3.select('#graph-UI-title-sub'), 'Sub title', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].sub_title = val })
-        this.buttonEdit(d3.select('#graph-UI-long-code'), 'Long code', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].long_code_name = val })
-        this.buttonEdit(d3.select('#graph-UI-short-code'), 'Short code', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].short_code_name = val })
-        this.buttonEdit(d3.select('#graph-UI-main-group'), 'Main group', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].maingroup = val })
-        this.buttonEdit(d3.select('#graph-UI-sub-group'), 'Sub group', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].subgroup = val })
-        this.buttonEdit(d3.select('#graph-UI-unit'), 'Unit', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].unit = val })
-        this.buttonEdit(d3.select('#graph-UI-uid'), 'UID', editUI.editDivType.notAllowed, (val) => {  })
-        this.buttonEdit(d3.select('#graph-UI-id'), 'ID', editUI.editDivType.notAllowed, (val) => {  })
-
-
-
-
-        this.buttonEdit(d3.select('.graph-expl-explanation'), 'Description', editUI.editDivType.multiline, (val) => { this.graph.impekts[0].descr = val })
-        this.buttonEdit(d3.select('.graph-expl-exclusions'), 'Exclusions', editUI.editDivType.multiline, (val) => { this.graph.impekts[0].excl = val })
-
-
-        // Advanced block
-        this.elTable.selectAll('tr[title]').each((d, i, arr) => {
-            new confirmButton(d3.select(arr[i]).append('td').attr('class', "UI-edit-td"), 'x', "UI-edit-delete", "delete", () => {
-                this.removeLink(d3.select(arr[i]))
-            })
-        })
-        // Adds add button for new Links
-        this.buttonNewLink(this.elTable)
-
-
-
-        this.elInfo.selectAll('.graph-UI-input-group').each((d, i, arr) => {
-            this.buttonRemoveFormula(arr[i])
-        })
-
-        d3.select('.graph-UI-input-block').append('div').html('+ add formula').attr('class', "UI-edit-add-fomrula-part").on('click touch', () => {
-            d3.select(".UI-edit-add-fomrula-part").remove()
-            this.buttonNewFormula()
-        })
-        //this.overlayerNewLink()
-        //d3.selectAll(".newItem-input-div-vari .newItem-input").dispatch('keyup');
-    }
-
-
-    // Advanced table edits
-    removeLink(row) {
-        let span = row.select('td span');
-        let short_code_name = span.attr('data-name')
-        let type = span.attr('data-type')
-
-
-
-
-        // remove from table
-        row.remove()
-
-        // remove including tag
-        d3.select('a[href="#resource_' + short_code_name + '"').remove()
-
-
-        // Remove from data
-        if (type == graph.typeOfLink.subimpekt.toString()) { this.removeSubImpekt(short_code_name) }
-        if (type == graph.typeOfLink.variable.toString()) { this.removeVariable(short_code_name) }
-
-
-        // update once to get errors
-        this.elUI.selectAll('hr[data-alias="' + short_code_name + '"]').style('background', '#ff9595')
-        this.graph.updateFormula(this.graph.impekts[0].formula)
-    }
-    removeSubImpekt(short_code_name) {
-        // Remove from data
-        this.graph.impekts[0].subimpact = this.graph.impekts[0].subimpact.filter((subimpekt) => {
-            if (subimpekt.short_code_name !== short_code_name) return subimpekt
-        })
-    }
-    removeVariable(short_code_name) {
-
-        // Delete variable controller
-        d3.selectAll('.graph-buttons-group>div[title="' + short_code_name + '"]').remove()
-
-        // Remove from data
-        this.graph.impekts[0].impactvariables = this.graph.impekts[0].impactvariables.filter((vari) => {
-            if (vari.short_code_name !== short_code_name) return vari
-        })
-        // ToDo fix this double, 
-        // Remove from variables
-        this.graph.impekts[0].variables = this.graph.impekts[0].variables.filter((vari) => {
-            if (vari.short_code_name !== short_code_name) return vari
-        })
-        this.graph.variables = this.graph.variables.filter((vari) => {
-            if (vari.short_code_name !== short_code_name) return vari
-        })
-    }
-    buttonRemoveFormula(element) {
-        new confirmButton(d3.select(element), 'x', "UI-edit-delete", "delete", () => {
-            let k = parseInt(d3.select(element).attr('data-part'))
-            this.graph.impekts[0].formula = this.graph.impekts[0].formula.filter((part, i) => { if (i !== k) return part })
-            this.graph.updateFormula(this.graph.impekts[0].formula)
-            this.graph.update(true);
-            this.update();
-            this.startEdit()
-        })
-    }
-    buttonNewFormula() {
-        //remove previous
-        d3.select(".UI-edit-add-fomrula-part").remove()
-        let len = d3.selectAll('.graph-UI-input-group').nodes().length
-
-        let newTitle = 'New part ' + (len + 1)
-
-        this.addAdvancedFormulaPlus()
-        let newPart = this.addAdvancedFormulaPart(len, newTitle, '')
-        this.buttonRemoveFormula(newPart.node())
-        d3.select('.graph-UI-input-block').append('div').html('+ add formula').attr('class', "UI-edit-add-fomrula-part").on('click touch', () => {
-            this.buttonNewFormula()
-        })
-        this.graph.impekts[0].formula.push({ technical: '', title: newTitle })
-    }
-    buttonNewLink(elTable) {
-        let addRow = elTable.append('tr').style('cursor', 'ititial').attr('class', "UI-edit-row")
-        addRow.append('td')
-        addRow.append('td').html('Add new item')
-        addRow.append('td')
-        addRow.append('td')
-        addRow.append('td').append('span').html('+').attr('class', "UI-edit-add")
-            .attr('title', "add")
-
-        addRow.on('click touch', (d, i, arr) => {
-            this.overlayerNewLink()
-        })
-    }
-
-
-
 
 
     // Add title edits
@@ -575,6 +569,8 @@ class editUI extends UI {
         })
     }
     databaseRequest(saveDiv) {
+
+        let timeout
         // Go wait button
         saveDiv.select('.UI-edit-div-button').style('display', 'none')
         let editButton = saveDiv.append('span')
@@ -582,28 +578,49 @@ class editUI extends UI {
             .style('cursor', 'progress')
             .html('<span class="spinner">Wait</span>')
 
-        // Update data
-        // Variables do update. impactvariables are not used after import
-        this.graph.impekts[0].impactvariables = this.graph.variables;
+
+
+
+
+        // Cleanup
+        
+        delete this.graph.impekts[0].calculatedData
+        this.graph.impekts[0].formula = this.graph.impekts[0].formula.map(formula => {
+            delete formula.evalValue
+            delete formula.readable
+            delete formula.hr
+            return formula
+        })
+
+        /*editImpekt.impactvariables = []
+        editImpekt.subimpact = []*/
+       /* editImpekt.links = <any>editImpekt.links.map((link) => {
+            if (link.link_type == graph.typeOfLink.variable) {
+                editImpekt.impactvariables.push(
+                    link.toJson()
+                )
+            }
+            if (link.link_type == graph.typeOfLink.subimpekt) {
+                editImpekt.subimpact.push(
+                    link.toJson()
+                )
+            }
+            return link.link_uid;
+        })*/
+
+        let editJSON = JSON.stringify(this.graph.impekts[0]);
+        console.warn(editJSON)
+
+
 
         
 
-        let links: number[] = [];
-        this.graph.impekts[0].impactvariables.map((vari) => { links.push(vari.var_id) })
-        this.graph.impekts[0].subimpact.map((subimpact) => { links.push(subimpact.impact_id) })
-
-        let timeout
-
 
         let promise = new Promise<any>((resolve, reject) => {
-
             let url = 'https://u39639p35134.web0087.zxcs-klant.nl/api/'
-
-
             let xhr = new XMLHttpRequest();
             xhr.open("POST", url, true);
             xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-
             xhr.onreadystatechange = () => {
                 if (xhr.readyState == 4) {
 
@@ -613,7 +630,7 @@ class editUI extends UI {
                             resolve(JSON.parse(xhr.responseText));
                         }
                         catch (e) {
-                            console.error('Cannot parse', xhr.responseText, 'json was', this.graph.impekts[0].toJson())
+                            
                             reject(xhr.responseText);
                         }
 
@@ -623,14 +640,13 @@ class editUI extends UI {
                     }
                 }
             }
-            xhr.send('x=setData&y=' + this.graph.impekts[0].toJson());
-
+            xhr.send('x=setData&y=' + editJSON)
         });
 
 
         // Errors
         promise.catch((error) => {
-
+            console.error('Cannot parse: ', error, ' json was: ', editJSON)
             editButton.html('Error!').attr('class', 'UI-edit-div-button UI-edit-div-error')
             clearTimeout(timeout);
             timeout = setTimeout(() => {
