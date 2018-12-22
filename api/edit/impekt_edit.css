@@ -294,7 +294,7 @@ span.UI-edit-auto {
 
 /*////////////////////////////////////////////////////////////////*/
 
-
+/*
 
 .overlay {
     position: fixed;
@@ -319,9 +319,7 @@ span.UI-edit-auto {
     position: relative;
     background: #fff;
     width: 100vw;
-    /* 	min-height:90vh; */
     padding: 10px 30px;
-    /* 	height:100vh; */
     box-sizing: border-box;
 }
 
@@ -382,7 +380,6 @@ span.UI-edit-auto {
 
 
 
-/* TABS*/
 .newItem-pick-div {
     width: 100%;
     display: block;
@@ -428,7 +425,7 @@ span.UI-edit-auto {
     }
 
     .newItem-pick-div input {
-        z-index: -9; /* better than hide*/
+        z-index: -9; 
         position: absolute;
     }
 
@@ -443,7 +440,6 @@ span.UI-edit-auto {
     padding: 7px 10px;
     cursor: pointer;
     transition: 0.5s;
-    /*display: inline-block;*/
     width: 50%;
     float: left;
 }
@@ -462,9 +458,274 @@ span.UI-edit-auto {
 @media only screen and (min-width: 800px) {
     .overlay-container {
         margin: 20px auto 40px;
-        /* 		height:80vh; */
         border-radius: 10px;
         box-shadow: 3px 3px 5px 0px rgba(0,0,0,0.3);
         max-width: 740px;
+    }
+}
+*/
+/*////////////////////////////////////////////////////////////////*/
+.overlay {
+    position: fixed;
+    background: rgba(150, 150, 150, 0.9);
+    height: 100vh;
+    width: 100vw;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+}
+
+.overlay-background {
+    position: absolute;
+    cursor: pointer;
+    height: 100vh;
+    width: 100vw;
+    top: 0;
+    left: 0;
+}
+
+.overlay-container {
+    position: relative;
+    background: #fff;
+    width: 100vw;
+    min-width: 300px;
+    padding: 10px 0;
+    height: 100vh;
+    box-sizing: border-box;
+}
+
+.overlay-close {
+    position: absolute;
+    background: #ddd;
+    display: block;
+    width: 60px;
+    text-align: center;
+    cursor: pointer;
+    top: 15px;
+    right: 20px;
+    padding: 2px;
+    border-radius: 100px;
+    font-size: 80%;
+}
+
+.overlay h1 {
+    font-size: 120%;
+    text-align: center;
+}
+
+.overlay-html {
+    height: 100%;
+    width: 100%;
+    position: relative;
+    box-sizing: border-box;
+}
+/* TABS*/
+.overlay-tabs {
+    width: 100%;
+    display: flex;
+    box-sizing: border-box;
+    position: relative;
+    height: 33px;
+}
+
+    .overlay-tabs > div {
+        flex: 1 auto;
+    }
+
+    .overlay-tabs label {
+        width: 100%;
+        padding: 6px 0 4px;
+        background: #567ff8;
+        display: inline-block;
+        box-sizing: border-box;
+        text-align: center;
+        opacity: 0.6;
+        color: black;
+        cursor: pointer;
+        transition: 0.5s;
+    }
+
+        .overlay-tabs label:hover {
+            opacity: 0.75;
+            color: white;
+        }
+
+    .overlay-tabs input:checked + label {
+        opacity: 1;
+        color: white;
+    }
+
+    .overlay-tabs div:first-child label {
+        border-top-left-radius: 10px;
+    }
+
+    .overlay-tabs div:last-child label {
+        border-top-right-radius: 10px;
+    }
+
+    .overlay-tabs input {
+        z-index: -9; /* better than hide*/
+        position: absolute;
+    }
+
+/*///////*/
+.overlay-general,
+.overlay-tab {
+    height: auto;
+    position: relative;
+    width: 100%;
+    box-sizing: border-box;
+    background: #567ff8;
+    padding: 0 30px 50px;
+    display: flex;
+    flex-flow: row wrap;
+}
+
+.overlay-tab {
+    border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+.overlay-general {
+    padding-top: 10px;
+    padding-bottom: 0px;
+}
+    .overlay-general label {
+        margin: 6px 4px;
+        flex: 6 1 auto;
+    }
+    .overlay-general input,
+    .overlay-general textarea{
+        width: 100%;
+    }
+    .overlay-general textarea, .overlay-general input, .overlay-tab input {
+        padding: 10px 10px;
+        box-sizing: border-box;
+        border: none;
+        border-radius: 15px;
+    }
+
+    .overlay-general textarea {
+        resize: vertical;
+        flex: 10 1 100%;
+    }
+
+.overlay-tab label {
+    resize: vertical;
+    color: #fff;
+    display: flex;
+    flex-flow: row wrap;
+    line-height: 43px;
+    font-size: 80%;
+}
+
+    .overlay-tab label span {
+        min-width: 60px;
+    }
+
+.overlay-button {
+    background: #fff;
+    display: block;
+    text-align: center;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 100px;
+    font-size: 90%;
+    margin: 20px auto 0px;
+    /*max-width: 60px;*/
+    white-space: nowrap;
+}
+
+/* BEGIN New LINKS BEGIN */
+
+.newItem-item-div {
+    background: #fff;
+    box-sizing: border-box;
+    border-top: 1px solid #aaa;
+    padding: 7px 10px;
+    cursor: pointer;
+    transition: 0.5s;
+    display: inline-block;
+    width: 100%;
+    float: left;
+    font-size: 90%;
+    display: flex;
+    flex-flow: row wrap;
+}
+
+    .newItem-item-div:hover {
+        background: #eee;
+        color: #567ff8;
+    }
+
+.newItem-codes {
+    /* 	background:#ddffaa; */
+    flex: 20 auto;
+    padding-bottom: 10px;
+}
+
+.newItem-meta {
+    /* 	background:#ddffff; */
+    flex: 1 auto;
+    padding-bottom: 10px;
+}
+
+.newItem-desc {
+    /* 	background:#ddd; */
+    flex-basis: 100%;
+    overflow-y: auto;
+    max-height: 100px;
+}
+/*///////////*/
+.newItem-title {
+    display: inline-block;
+    font-weight: bold;
+    padding-right: 30px;
+}
+
+.newItem-sub {
+    display: inline-block;
+}
+
+.newItem-long {
+    display: inline-block;
+    font-style: italic;
+    opacity: 0.7;
+    padding-right: 30px;
+}
+
+.newItem-short {
+    display: inline-block;
+    font-style: italic;
+    opacity: 0.7;
+}
+
+.newItem-tags {
+    opacity: 0.7;
+}
+
+
+.newItem-group {
+    display: inline-block;
+    opacity: 0.7;
+}
+
+.newItem-subgroup {
+    display: inline-block;
+    opacity: 0.7;
+}
+
+
+
+/* END New Links END*/
+
+@media only screen and (min-width: 800px) {
+    .overlay-container {
+        margin: 20px auto 40px;
+        border-radius: 10px;
+        box-shadow: 3px 3px 5px 0px rgba(0,0,0,0.3);
+        max-width: 740px;
+        padding: 10px 30px;
+        height: initial;
     }
 }

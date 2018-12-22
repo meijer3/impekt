@@ -1,10 +1,74 @@
+function parseURLParams(url) {
+    let queryStart = url.indexOf("?") + 1, queryEnd = url.indexOf("#") + 1 || url.length + 1, query = url.slice(queryStart, queryEnd - 1), pairs = query.replace(/\+/g, " ").split("&"), parms = {}, i, n, v, nv;
+    if (query === url || query === "")
+        return false;
+    for (i = 0; i < pairs.length; i++) {
+        nv = pairs[i].split("=", 2);
+        n = decodeURIComponent(nv[0]);
+        v = decodeURIComponent(nv[1]);
+        if (!parms.hasOwnProperty(n))
+            parms[n] = [];
+        parms[n].push(nv.length === 2 ? v : null);
+    }
+    return parms;
+}
 function toggleMenu(x) {
     x.parentNode.parentNode.classList.toggle("header-menu-open");
+}
+class resource {
+    create(oneLink, elResource, elIncl) {
+        this.elResource = elResource;
+        this.elIncl = elIncl;
+        this.link_type = oneLink.link_type;
+        if (this.link_type === graph.typeOfLink.variable) {
+            this.alias = oneLink.variable.short_code_name;
+            this.id = this.alias;
+            this.addResourceVariable(oneLink);
+        }
+        if (this.link_type === graph.typeOfLink.subimpekt) {
+            this.alias = oneLink.subimpact.short_code_name;
+            this.id = this.alias;
+            this.addResourceImpekt(oneLink);
+        }
+        this.addToIcl();
+    }
+    remove() {
+        this.elResourceDiv.remove();
+    }
+    addResourceImpekt(oneLink) {
+        this.elResourceDiv = this.elResource.append('div').attr('id', this.id).attr('class', 'resource resource-sub');
+        this.elResourceDiv.append('div').html(oneLink.subimpact.title);
+        this.elResourceDiv.append('div').html(oneLink.subimpact.sub_title);
+        this.elResourceDiv.append('div').html(oneLink.subimpact.long_code_name);
+        this.elResourceDiv.append('div').html(oneLink.subimpact.short_code_name);
+        this.elResourceDiv.append('div').html(oneLink.subimpact.maingroup);
+        this.elResourceDiv.append('div').html(oneLink.subimpact.subgroup);
+        this.elResourceDiv.append('div').html(oneLink.link_descr);
+    }
+    addResourceVariable(oneLink) {
+        this.elResourceDiv = this.elResource.append('div').attr('id', this.id).attr('class', 'resource resource-vari');
+        this.elResourceDiv.append('div').html(oneLink.variable.title);
+        this.elResourceDiv.append('div').html(oneLink.variable.sub_title);
+        this.elResourceDiv.append('div').html(oneLink.variable.long_code_name);
+        this.elResourceDiv.append('div').html(oneLink.variable.short_code_name);
+        this.elResourceDiv.append('div').html(oneLink.variable.descr);
+        this.elResourceDiv.append('div').html(oneLink.link_descr);
+    }
+    addToIcl() {
+        this.elInclLink = this.elIncl
+            .append('a')
+            .attr('href', "#" + this.id)
+            .html(this.alias);
+    }
+    removeFromIcl() {
+        this.elInclLink.remove();
+    }
 }
 class UI {
     constructor(graph) {
         this.title = '';
         this.subtitle = '';
+        this.resources = [];
         this.elAdvancedForm = [];
         this.graph = graph;
         this.elUI = d3.select('#page').append('div').attr('class', 'graph-UI-group');
@@ -12,6 +76,9 @@ class UI {
         this.elFormula = this.elUI.append('div').attr('class', 'graph-UI-formula');
         this.elImpekt = this.elUI.append('div').attr('class', 'graph-UI-impekt');
         this.elResource = this.elUI.append('div').attr('class', 'graph-UI-resource');
+        this.elResource.append('h4').html("Resources");
+        this.elIncl = this.elResource.append('div').attr('class', 'graph-UI-resource-incl');
+        this.elTitle = d3.select("#page").insert('h1', '.graph-graph').attr('class', 'graph-title');
     }
     update() {
         this.setTitle();
@@ -20,17 +87,14 @@ class UI {
             this.addAdvanced();
             this.addAdvancedFormula();
             this.addImpektDesc();
-            this.addResource();
         }
-        this.addVariable();
-        this.makeTableRowDraggable();
-    }
-    addVariable() {
-        this.graph.variables.map((variable) => {
-            variable.elTable = this.elTable;
-            variable.addToUI(() => {
-                this.graph.update();
-                this.makeTableRowDraggable();
+        this.graph.impekts.map((impekt) => {
+            impekt.links.map((link) => {
+                link.addToTable(this.elTable, this.graph.elControllers, () => {
+                    this.graph.update();
+                    this.makeTableRowDraggable();
+                });
+                link.addToResource(this.elResource, this.elIncl);
             });
         });
     }
@@ -77,10 +141,7 @@ class UI {
             this.title = this.graph.impekts.map(x => x.title).join(' ');
             this.subtitle = '';
         }
-        d3.selectAll('.graph-title').remove();
-        d3.select('.graph-container')
-            .insert('h1', '.graph-graph')
-            .attr('class', 'graph-title')
+        this.elTitle
             .html('<div id="graph-UI-title-main">' + this.title + '</div>' + subtitleString);
     }
     addOverviewFormula() {
@@ -119,9 +180,8 @@ class UI {
         this.elInfo = block.append('div').attr('class', 'graph-UI-info').attr('id', 'graph-UI-info-main');
         this.elInfo.style('max-height', '0px');
         this.elTable = this.elInfo.append('table');
-        this.elTable.append('tr').html("<th></th><th>Forumla</th><th colspan='2' style='text-align:center;	padding: 5px 20px 5px 0;' >Value</th><th></th>");
-        y.graph.impekts[0].links.filter(e => e.subimpact).map((link) => {
-            this.addAdvancedSubImpekt(link);
+        this.elTable.append('tr').html("<th></th><th>Forumla</th><th colspan='2' style='text-align:center;	padding: 5px 20px 5px 0;' >Value</th><th></th><th></th>");
+        this.graph.impekts[0].links.filter(e => e.subimpact).map((link) => {
         });
         this.elAdvancedError = this.elInfo.append('div').attr('class', 'graph-UI-info-error');
     }
@@ -193,17 +253,6 @@ class UI {
             .style('height', '13px')
             .style('padding-top', '7px');
     }
-    addAdvancedSubImpekt(link) {
-        let subimpekt = link.subimpact;
-        this.elTable.append('tr')
-            .attr('class', 'graph-UI-table-tr graph-UI-table-impact')
-            .attr('title', 'drag me into the formula')
-            .html(`
-                    <td class="graph-UI-info-copy"><span data-type="` + graph.typeOfLink.subimpekt + `" data-name="` + subimpekt.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + subimpekt.short_code_name + `" data-value="` + link.link_uid + `">'>` + subimpekt.short_code_name + `</span></td>
-                    <td>` + subimpekt.title + ` (` + subimpekt.short_code_name + `)</td>
-                    <td colspan='2' style='text-align:center;' class='vari_` + subimpekt.short_code_name + `'><a href='#id_` + subimpekt.short_code_name + `' title='More information'>Fixed</a></td>
-                `);
-    }
     addImpektDesc() {
         this.elImpekt.html('');
         let singleImpekt = this.graph.impekts[0];
@@ -215,15 +264,6 @@ class UI {
             this.elImpekt.append('h4').html("Known exclusions");
             this.elImpekt.append('p').html(singleImpekt.excl).attr('class', 'graph-expl-exclusions');
         }
-    }
-    addResource() {
-        let list = [];
-        this.graph.impekts.map(impekt => {
-        });
-        this.graph.impekts.map(impekt => {
-        });
-        var inlc = this.elImpekt.append('p').attr('class', 'graph-expl-included').html('<h4>Including</h4>');
-        list.map(x => inlc.append('a').html('<a href="#resource_' + x + '">' + x + '</a>'));
     }
     toggleAdvanced(show) {
         if (show)
@@ -247,13 +287,14 @@ class UI {
     }
     makeTableRowDraggable() {
         this.elTable
-            .selectAll('tr + tr').each(function () { d3.select(this); })
+            .selectAll('tr + tr>td:nth-child(2)').each(function () { d3.select(this); })
             .call(d3.drag()
             .on("start", (d, i, arr) => {
             let info = this.elInfo;
             let divFormulas = this.elAdvancedForm;
             let coords = d3.mouse(info.node());
-            let dragable = d3.select(arr[i]).select('.graph-UI-info-copy span');
+            console.log(arr[i]);
+            let dragable = d3.select(arr[i].parentElement).select('.graph-UI-info-copy span');
             clearTimeout(this.timeout);
             this.timeout = setTimeout(() => {
                 let divIndex = 1;
@@ -295,7 +336,7 @@ class UI {
             .on("drag", (d, i, arr) => {
             let info = this.elInfo;
             let coords = d3.mouse(info.node());
-            let dragable = d3.select(arr[i]).select('.graph-UI-info-copy span');
+            let dragable = d3.select(arr[i].parentElement).select('.graph-UI-info-copy span');
             dragable.style('margin-top', "-30px");
             if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
                 dragable.style('margin-top', "-30px");
@@ -306,7 +347,7 @@ class UI {
         })
             .on("end", (d, i, arr) => {
             let inputBars = (this.elAdvancedForm);
-            var dragable = d3.select(arr[i]).select('.graph-UI-info-copy span');
+            var dragable = d3.select(arr[i].parentElement).select('.graph-UI-info-copy span');
             dragable
                 .style('position', "relative").style('left', "")
                 .style('top', "")
@@ -324,6 +365,7 @@ class UI {
                         inputBar.html(inputBar.html().replace(regstr, ''));
                     }
                 });
+                this.resizeAllFormulaBlocks();
                 this.decodeFormula();
             }
             else {
@@ -334,17 +376,23 @@ class UI {
                 });
             }
             inputBars.map(function (d, e, i) { d3.select(this).style('min-height', '').transition().duration(500).style('padding', ''); });
-            this.resizeAllFormulaBlocks();
         }));
     }
 }
-let y;
 window.onload = () => {
-    x = new graph();
-    y = new UI(x);
-    x.buildGraph().then(() => {
-        y.update();
-        y.toggleAdvanced(true);
-        window.scrollTo(0, 800);
+    let para = parseURLParams(window.location.href);
+    if (para == false) { }
+    else {
+        if (typeof para.id !== 'undefined') {
+            let ids = [];
+            para.id.map((x) => { x.split(';').map((y) => { ids.push(y); }); });
+            settings.ids = ids;
+        }
+    }
+    let newGraph = new graph();
+    x = new UI(newGraph);
+    newGraph.buildGraph().then(() => {
+        x.update();
+        x.toggleAdvanced(true);
     });
 };

@@ -1,22 +1,13 @@
 ﻿
-
-let settings = {
-    margin: { top: 40, right: 0, bottom: 30, left: 90 },
-    TypeOfComparison: 1,
-    ids: [10],
-    barheight: 50,
-}
-let x
-let color = ['#157a6e', '#ffba49', '#da2c38', '#87c38f', '#b8b8d1']
-
-
 /* 
  * // ShortCuts:
  * 
  * AutoLayout
  *      Ctrl K + F (doc: Ctrl K D)
  *      
- *      
+ *
+ *
+ * https://web0087.zxcs.nl/phpmyadmin/sql.php?server=1&db=u39639p35134_impekt&table=impekt&pos=0
  *      
  * ToDo:
  * Comparision
@@ -269,6 +260,7 @@ class sliderVariable {
     parentNode: d3.Selection<HTMLElement, any, HTMLElement, any>
     el: d3.Selection<HTMLElement, any, HTMLElement, any>
     timeout: any
+    elUpdate: d3.Selection<HTMLElement, any, HTMLElement, any>[]
 
 
     constructor(min, max, value, alias, unit, parentNode) {
@@ -317,7 +309,14 @@ class sliderVariable {
     activate(callback) {
 
         let updateValues = () => {
+
+            if (this.elUpdate) {
+                this.elUpdate.map((locations) => {
+                    locations.html((<HTMLInputElement>this.el.select('input').node()).value )
+                })
+            }
             this.el.select('a').html((<HTMLInputElement>this.el.select('input').node()).value + ' ' + this.el.select('input').attr('data-unit'))
+
         }
         let mouseUp = () => {
             updateValues() // Update for Click only
@@ -366,8 +365,11 @@ class variable {
     version: number
     versionID: number
     descr: string
-    type: graph.typeOfController
+    type: graph.typeOfVariable
 
+
+    advanced: boolean;
+    changeable: boolean;
 
     // Sliders
     max: number
@@ -385,12 +387,8 @@ class variable {
     elUpdate: d3.Selection<HTMLElement, any, HTMLElement, any>[] = [];
 
 
-    constructor(/*elControllers: d3.Selection<HTMLElement, any, HTMLElement, any>*/) {
-        //this.elControllers = elControllers // inherit from Graph
-
-
-    }
-    fromJSON(json: any, value?): variable {
+    constructor() { }
+    fromJSON(json: any): variable {
 
         // link values
         /*this.link_amount = json.link_amount
@@ -415,7 +413,7 @@ class variable {
         this.version = json.version
         this.versionID = json.versionID
         this.descr = json.descr
-        this.type = graph.typeOfController.slider //ToDo overulled!!!
+        this.type = json.type
 
         // Sliders
         this.max = json.max
@@ -462,60 +460,40 @@ class variable {
 
 
     }
-    addToUI(callback) {
-        this.addToTable()
-        if (this.type == graph.typeOfController.slider) {
-            this.addSlider(callback)
+
+    // Called from view
+   
+
+
+    // Called from addToUi or addToTable
+    addConrollers(elControllers, callback) {
+        if (this.type == graph.typeOfVariable.slider) {
+            this.addSlider(elControllers, callback)
         }
-        if (this.type == graph.typeOfController.toggle) {
-            this.addToggle(callback)
+        if (this.type == graph.typeOfVariable.toggle) {
+            this.addToggle(elControllers, callback)
         }
     }
 
-    addToTable() {
+    // Add classes and update
+    addSlider(elControllers, callback) {
 
-        // Add impactvariables to table
-        let row = this.elTable.append('tr')
-            .attr('class', 'graph-UI-table-tr graph-UI-table-variable')
-            .attr('title', 'drag me into the formula')
-
-        // Add cells
-        row.append('td')
-            .attr('class', 'graph-UI-info-copy')
-            .html(`<span data-type="` + this.type + `" data-name="` + this.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + this.short_code_name + `" data-value="` + this.link_uid + `">'>` + this.short_code_name + `</span>`)
-
-        row.append('td')
-            .html(this.title + `(` + this.short_code_name + `)`)
-
-        let update = row.append('td')
-            .style('text-align', 'right')
-            .style('padding-right', '5px')
-            .html(this.value.toString())
-        row.append('td')
-            .html(this.unit)
-
-
-        this.elUpdate.push(update);
-    }
-    addSlider(callback) {
-
-        let newslider = new sliderVariable(this.min, this.max, this.value, this.short_code_name, this.unit, this.elControllers)
-
+        let newslider = new sliderVariable(this.min, this.max, this.value, this.short_code_name, this.unit, elControllers)
+        newslider.elUpdate = this.elUpdate;
+        // on change do this
         newslider.activate((amount) => {
             this.elUpdate.map((locations) => {
                 locations.html(amount);
                 this.value = amount;
-
             })
             callback(amount);
 
         })
     }
-    addToggle(callback) {
-        let newToggle = new toggleVariable(this.alias1, this.alias2, this.short_code_name, this.value1, this.value2, this.elControllers)
+    addToggle(elControllers, callback) {
+        let newToggle = new toggleVariable(this.alias1, this.alias2, this.short_code_name, this.value1, this.value2, elControllers)
 
-
-
+        // on change do this
         newToggle.activate((amount) => {
             this.elUpdate.map((locations) => {
                 locations.html(amount);
@@ -527,15 +505,29 @@ class variable {
         })
     }
 
-    // Interal fix buttons
+    // Interal fixed buttons
     internalStackCompare() {
         this.fromJSON({
             "uid": -1,
-            "type": graph.typeOfController.internalStackCompare,
+            "type": graph.typeOfVariable.internalStackCompare,
             "short_code_name": "internalStackCompare",
             "alias1": 'Stacked',
             "value1": graph.TypeOfComparison.Stacked,
             "alias2": 'Compared',
+            "value2": graph.TypeOfComparison.Compare
+
+        })
+        return this
+    }
+    // Interal fixed buttons
+    internalSimpleAdvanced() {
+        this.fromJSON({
+            "uid": -1,
+            "type": graph.typeOfVariable.internalSimpleAdvanced,
+            "short_code_name": "internalSimpleAdvanced",
+            "alias1": 'Simple',
+            "value1": graph.TypeOfComparison.Stacked,
+            "alias2": 'Advanced',
             "value2": graph.TypeOfComparison.Compare
 
         })
@@ -574,6 +566,7 @@ class graph {
     yAxis: any
     elControllers: d3.Selection<HTMLElement, any, HTMLElement, any>
     variables: variable[] = [];
+    mode: graph.mode;
 
     errorState: boolean
 
@@ -602,7 +595,7 @@ class graph {
 
     // Start building from constuctor
     buildGraph(): Promise<void> {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
 
             this.importData(settings.ids)
                 .catch((error) => {
@@ -611,6 +604,7 @@ class graph {
                     this.errors(true, 'There is a technical error, contact Admin')
                 })
                 .then((arrayOfImpekts) => {
+
                     this.impekts = arrayOfImpekts;
                     this.AmountOfComparison = (this.impekts.length === 1) ? graph.AmountOfComparison.one : graph.AmountOfComparison.multiples;
 
@@ -667,25 +661,43 @@ class graph {
 
     // Add Default buttons
     addButtons() {
+
+        let internalSimpleAdvanced = new variable()
+        internalSimpleAdvanced.elControllers = this.elControllers
+        internalSimpleAdvanced.internalSimpleAdvanced();
+        internalSimpleAdvanced.type = graph.typeOfVariable.internalSimpleAdvanced
+        internalSimpleAdvanced.addToggle(this.elControllers, (mode) => {
+            this.changeMode(mode)
+        });
+
         let internalStackCompare = new variable()
         internalStackCompare.elControllers = this.elControllers
         internalStackCompare.internalStackCompare();
-        internalStackCompare.type = graph.typeOfController.internalStackCompare // ToDo Temp, see overule
-        internalStackCompare.addToggle((TypeOfComparison) => {
-            this.setMode(TypeOfComparison)
+        internalStackCompare.type = graph.typeOfVariable.internalStackCompare
+        internalStackCompare.addToggle(this.elControllers, (TypeOfComparison) => {
+            this.setTypeOfComparison(TypeOfComparison)
         });
+
 
     }
 
     // Extract all used field trough all impekts
     setUsedFields() {
         // ToDo, also for subimpekts
-        this.impekts.map((x) => { // For every impekts
-            this.usedFields.push.apply(this.usedFields,
-                Object.keys(x.impactdata.filter(x => x.dataset === 2)[0])// Merge new fields into array
-                    .filter(x => !(x == "impekts" || x == "id" || x == "impact_id" || x == "version" || x == "date" || x == "uid")) // Except these
-            )
-        })
+        try {
+            this.impekts.map((x) => { // For every impekts
+                this.usedFields.push.apply(this.usedFields,
+                    Object.keys(x.impactdata.filter(x => x.dataset === 2)[0])// Merge new fields into array
+                        .filter(x => !(x == "impekts" || x == "id" || x == "impact_id" || x == "version" || x == "date" || x == "uid" || x == "dataset")) // Except these
+                )
+            })
+        }
+        catch (e) {
+            this.usedFields.push('co2')
+            this.usedFields.push('energy')
+            console.warn('No data here, standard aspects of impekt')
+        }
+
 
         this.usedFields = this.usedFields.filter((item, pos) => this.usedFields.indexOf(item) == pos) // Dont know Filter?
     }
@@ -725,11 +737,15 @@ class graph {
     }
 
     // Change from Stack or Compare mode
-    setMode(mode: graph.TypeOfComparison) {
+    setTypeOfComparison(mode: graph.TypeOfComparison) {
         this.TypeOfComparison = mode;
         this.update();
     }
 
+    // Change mode
+    changeMode(mode) {
+        console.log('Go to ', mode)
+    }
 
 
     // If graph has any Error go here.
@@ -770,7 +786,7 @@ class graph {
         this.valueArray = [] // Clean
         this.d3DataArray = [] // Clean
 
-        
+
         if (redraw) {
             // set used fields
             this.setUsedFields();
@@ -1154,7 +1170,10 @@ class graph {
 
 }
 module graph {
-
+    export enum mode {
+        Simple,
+        Advanced
+    }
     export enum TypeOfComparison {
         Compare,
         Stacked
@@ -1167,11 +1186,14 @@ module graph {
         subimpekt,
         variable
     }
-    export enum typeOfController {
+    export enum typeOfVariable {
         toggle,
         slider,
-        internalStackCompare
+        internalStackCompare,
+        internalSimpleAdvanced,
+        picklist
     }
+
 
 
 }
@@ -1200,12 +1222,12 @@ class impekt implements Iimpekt {
     tags: string[] = []
     date: string;
     edited: boolean;
-    links: link[]  = [];
+    links: link[] = [];
     formula: Iformula[];
     impactdata: impektdata[] = []
 
-    impactvariables: any[]
-    subimpact: any[] 
+    variables: any[]
+    subimpekts: any[]
 
     calculatedData: calculatedData[] = []
 
@@ -1249,7 +1271,7 @@ class impekt implements Iimpekt {
 
             if (Array.isArray(json.impactvariables)) {
                 json.impactvariables.map(e => {
-                    let newLink:link = new link(e)
+                    let newLink: link = new link(e)
                     this.links.push(newLink)
 
                 })
@@ -1261,7 +1283,7 @@ class impekt implements Iimpekt {
                     this.links.push(newLink)
                 })
             }
-            console.log( 'Links:', this.links )
+            console.log('Links:', this.links)
             return this;
         }
         catch (e) {
@@ -1283,26 +1305,39 @@ class impekt implements Iimpekt {
                 xhr.open("POST", url, true);
                 xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
                 xhr.onreadystatechange = () => {
-                    if (xhr.readyState == 4 && xhr.status == 202) {
+                    if (xhr.readyState == 4) {
 
+                        if (xhr.status == 202) {
 
-                        try {
-                            let jsonData = JSON.parse(xhr.responseText);
-                            return resolve(this.bindData(jsonData[0]));
+                            try {
+                                let jsonData = JSON.parse(xhr.responseText);
+                                return resolve(this.bindData(jsonData[0]));
 
-                        } catch (e) {
-                            return reject(xhr.responseText);
+                            } catch (e) {
+                                return reject(xhr.responseText);
+                            }
+
+                        }
+                        else if (xhr.status == 400) { // Known Errors in API
+                            return reject(JSON.parse(xhr.responseText))
+                        }
+                        else if (xhr.status == 200) {
+                            console.error(xhr.responseText)
+                            return reject('Internal Error')
                         }
 
-
-
-                    } else {
-                        if (xhr.status == 0) {
-                            return reject('Service down')
-                        } else if (xhr.status != 202) {
-                            console.error('wrong header', xhr)
-                            return reject('headers')
+                        else  {
+                            console.error(xhr)
+                            return reject('Wrong header: ' + xhr.status)
                         }
+
+                    }
+                    // Never reach 
+                    else {
+                        if (xhr.status == 0) { // API Down... :(
+                            return reject('Service down, status 0')
+                        } 
+
                     }
                 }
                 xhr.send('x=getData&y=' + this.uid);
@@ -1356,7 +1391,7 @@ class impekt implements Iimpekt {
                         //console.error('codeParts', codeParts[i])
                         //console.error('short_code_name', this.short_code_name)
                         //console.error('subimpact', this.subimpact.map(e => e.short_code_name))
-                        //console.error('impactvariables', this.impactvariables.map(e => e.short_code_name))
+                        //console.error('variables', this.variables.map(e => e.short_code_name))
                         callback('getFormula Unknown Tag in Formula: ' + x);
                     }
 
@@ -1501,6 +1536,7 @@ class link {
     link_alias: string;
     subimpact: subimpekt;
     variable: variable;
+    resource: resource;
 
     constructor(json) {
         this.link_uid = json.link_uid;
@@ -1514,19 +1550,23 @@ class link {
         this.link_descr = json.link_descr;
 
         if (this.link_type == graph.typeOfLink.subimpekt) {
-
             this.subimpact = new subimpekt(json.uid)
             this.subimpact.bindData(json);
-
             this.link_alias = json.short_code_name;
         }
-        if (this.link_type == graph.typeOfLink.variable) {
-            this.variable = new variable().fromJSON(json);
 
+        else if (this.link_type == graph.typeOfLink.variable) {
+            this.variable = new variable().fromJSON(json);
+            this.variable.value = this.link_amount;
+            if (this.link_advanced) this.variable.advanced = this.link_advanced;
+            if (this.link_changeable) this.variable.changeable = this.link_changeable;
             this.link_alias = json.short_code_name;
+        }
+            // If newly created
+        else {
+            this.link_alias = json.link_alias;
         }
     };
-
     getValue(field, given_variable) {
         if (this.link_type == graph.typeOfLink.subimpekt) {
             return this.subimpact.getSubImpektData(field);
@@ -1534,23 +1574,84 @@ class link {
         if (this.link_type == graph.typeOfLink.variable) {
             return given_variable.filter((e) => { return e.link_uid == this.link_uid })[0].value
         }
-    }
-
+    };
     getAlias() {
         return this.link_alias
+    };
+
+
+
+    addToResource(elResource, elIncl) {
+        this.resource = new resource()
+        this.resource.create(this, elResource, elIncl)
     }
-    /*toJson() {
-        if (this.link_type == graph.typeOfLink.variable) {
-
-        }
+    addToTable(elTable,elControllers,callback) {
         if (this.link_type == graph.typeOfLink.subimpekt) {
-
+            let subimpekt = this.subimpact;
+            elTable.append('tr')
+                .attr('class', 'graph-UI-table-tr graph-UI-table-impact')
+                .attr('title', 'drag me into the formula')
+                .html(`
+                    <td class="graph-UI-info-copy"><span data-type="`+ graph.typeOfLink.subimpekt + `" data-name="` + subimpekt.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + subimpekt.short_code_name + `" data-value="` + this.link_uid + `">'>` + subimpekt.short_code_name + `</span></td>
+                    <td>` + subimpekt.title + ` (` + subimpekt.short_code_name + `)</td>
+                    <td colspan='2' style='text-align:center;' class='vari_` + subimpekt.short_code_name + `'><a href='#id_` + subimpekt.short_code_name + `' title='More information'>Fixed</a></td>
+                    <td></td>
+                `)
         }
-    }*/
+        if (this.link_type == graph.typeOfLink.variable) {
+            // Add variables to table
+            let row = elTable.append('tr')
+                .attr('class', 'graph-UI-table-tr graph-UI-table-variable')
+                .attr('title', 'drag me into the formula')
+
+            // Add cells
+            row.append('td')
+                .attr('class', 'graph-UI-info-copy')
+                .html(`<span data-type="` + this.variable.type + `" data-name="` + this.variable.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + this.variable.short_code_name + `" data-value="` + this.link_uid + `">'>` + this.variable.short_code_name + `</span>`)
+
+            row.append('td')
+                .html(this.variable.title + `(` + this.variable.short_code_name + `)`)
+
+            let update = row.append('td')
+                .style('text-align', 'right')
+                .style('padding-right', '5px')
+                .html(this.variable.value.toString())
+            // Set in the update Array for onchange events
+            this.variable.elUpdate.push(update);
+
+            row.append('td')
+                .html(this.variable.unit)
+
+
+            // Add controlers
+            let location
+            if (this.link_advanced) {
+                location = row.append('td')
+            } else {
+                location = elControllers
+            }
+            this.variable.addConrollers(location, (subcallback) => { callback(subcallback); }) // callback = values on change
+        }
+    }
+
+
+
 }
 
 
 
+
+
+
+let settings = {
+    margin: { top: 40, right: 0, bottom: 30, left: 90 },
+    TypeOfComparison: 1,
+    ids: [100],
+    barheight: 50,
+    mode: graph.mode.Simple
+}
+let x
+let color = ['#157a6e', '#ffba49', '#da2c38', '#87c38f', '#b8b8d1']
 
 
 

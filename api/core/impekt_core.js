@@ -1,11 +1,3 @@
-let settings = {
-    margin: { top: 40, right: 0, bottom: 30, left: 90 },
-    TypeOfComparison: 1,
-    ids: [10],
-    barheight: 50,
-};
-let x;
-let color = ['#157a6e', '#ffba49', '#da2c38', '#87c38f', '#b8b8d1'];
 function PrettyNumber(num) {
     let significance = 3;
     let strlen;
@@ -171,6 +163,11 @@ class sliderVariable {
     }
     activate(callback) {
         let updateValues = () => {
+            if (this.elUpdate) {
+                this.elUpdate.map((locations) => {
+                    locations.html(this.el.select('input').node().value);
+                });
+            }
             this.el.select('a').html(this.el.select('input').node().value + ' ' + this.el.select('input').attr('data-unit'));
         };
         let mouseUp = () => {
@@ -193,7 +190,7 @@ class variable {
     constructor() {
         this.elUpdate = [];
     }
-    fromJSON(json, value) {
+    fromJSON(json) {
         this.link_uid = json.link_uid;
         this.value = 123;
         this.long_code_name = json.long_code_name;
@@ -206,7 +203,7 @@ class variable {
         this.version = json.version;
         this.versionID = json.versionID;
         this.descr = json.descr;
-        this.type = graph.typeOfController.slider;
+        this.type = json.type;
         this.max = json.max;
         this.min = json.min;
         this.value1 = json.value1;
@@ -237,34 +234,17 @@ class variable {
             xhr.send('x=getVariableByID&y=' + var_id);
         });
     }
-    addToUI(callback) {
-        this.addToTable();
-        if (this.type == graph.typeOfController.slider) {
-            this.addSlider(callback);
+    addConrollers(elControllers, callback) {
+        if (this.type == graph.typeOfVariable.slider) {
+            this.addSlider(elControllers, callback);
         }
-        if (this.type == graph.typeOfController.toggle) {
-            this.addToggle(callback);
+        if (this.type == graph.typeOfVariable.toggle) {
+            this.addToggle(elControllers, callback);
         }
     }
-    addToTable() {
-        let row = this.elTable.append('tr')
-            .attr('class', 'graph-UI-table-tr graph-UI-table-variable')
-            .attr('title', 'drag me into the formula');
-        row.append('td')
-            .attr('class', 'graph-UI-info-copy')
-            .html(`<span data-type="` + this.type + `" data-name="` + this.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + this.short_code_name + `" data-value="` + this.link_uid + `">'>` + this.short_code_name + `</span>`);
-        row.append('td')
-            .html(this.title + `(` + this.short_code_name + `)`);
-        let update = row.append('td')
-            .style('text-align', 'right')
-            .style('padding-right', '5px')
-            .html(this.value.toString());
-        row.append('td')
-            .html(this.unit);
-        this.elUpdate.push(update);
-    }
-    addSlider(callback) {
-        let newslider = new sliderVariable(this.min, this.max, this.value, this.short_code_name, this.unit, this.elControllers);
+    addSlider(elControllers, callback) {
+        let newslider = new sliderVariable(this.min, this.max, this.value, this.short_code_name, this.unit, elControllers);
+        newslider.elUpdate = this.elUpdate;
         newslider.activate((amount) => {
             this.elUpdate.map((locations) => {
                 locations.html(amount);
@@ -273,8 +253,8 @@ class variable {
             callback(amount);
         });
     }
-    addToggle(callback) {
-        let newToggle = new toggleVariable(this.alias1, this.alias2, this.short_code_name, this.value1, this.value2, this.elControllers);
+    addToggle(elControllers, callback) {
+        let newToggle = new toggleVariable(this.alias1, this.alias2, this.short_code_name, this.value1, this.value2, elControllers);
         newToggle.activate((amount) => {
             this.elUpdate.map((locations) => {
                 locations.html(amount);
@@ -286,11 +266,23 @@ class variable {
     internalStackCompare() {
         this.fromJSON({
             "uid": -1,
-            "type": graph.typeOfController.internalStackCompare,
+            "type": graph.typeOfVariable.internalStackCompare,
             "short_code_name": "internalStackCompare",
             "alias1": 'Stacked',
             "value1": graph.TypeOfComparison.Stacked,
             "alias2": 'Compared',
+            "value2": graph.TypeOfComparison.Compare
+        });
+        return this;
+    }
+    internalSimpleAdvanced() {
+        this.fromJSON({
+            "uid": -1,
+            "type": graph.typeOfVariable.internalSimpleAdvanced,
+            "short_code_name": "internalSimpleAdvanced",
+            "alias1": 'Simple',
+            "value1": graph.TypeOfComparison.Stacked,
+            "alias2": 'Advanced',
             "value2": graph.TypeOfComparison.Compare
         });
         return this;
@@ -312,7 +304,7 @@ class graph {
         this.TypeOfComparison = settings.TypeOfComparison;
     }
     buildGraph() {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             this.importData(settings.ids)
                 .catch((error) => {
                 console.error(error);
@@ -344,19 +336,33 @@ class graph {
         }));
     }
     addButtons() {
+        let internalSimpleAdvanced = new variable();
+        internalSimpleAdvanced.elControllers = this.elControllers;
+        internalSimpleAdvanced.internalSimpleAdvanced();
+        internalSimpleAdvanced.type = graph.typeOfVariable.internalSimpleAdvanced;
+        internalSimpleAdvanced.addToggle(this.elControllers, (mode) => {
+            this.changeMode(mode);
+        });
         let internalStackCompare = new variable();
         internalStackCompare.elControllers = this.elControllers;
         internalStackCompare.internalStackCompare();
-        internalStackCompare.type = graph.typeOfController.internalStackCompare;
-        internalStackCompare.addToggle((TypeOfComparison) => {
-            this.setMode(TypeOfComparison);
+        internalStackCompare.type = graph.typeOfVariable.internalStackCompare;
+        internalStackCompare.addToggle(this.elControllers, (TypeOfComparison) => {
+            this.setTypeOfComparison(TypeOfComparison);
         });
     }
     setUsedFields() {
-        this.impekts.map((x) => {
-            this.usedFields.push.apply(this.usedFields, Object.keys(x.impactdata.filter(x => x.dataset === 2)[0])
-                .filter(x => !(x == "impekts" || x == "id" || x == "impact_id" || x == "version" || x == "date" || x == "uid")));
-        });
+        try {
+            this.impekts.map((x) => {
+                this.usedFields.push.apply(this.usedFields, Object.keys(x.impactdata.filter(x => x.dataset === 2)[0])
+                    .filter(x => !(x == "impekts" || x == "id" || x == "impact_id" || x == "version" || x == "date" || x == "uid" || x == "dataset")));
+            });
+        }
+        catch (e) {
+            this.usedFields.push('co2');
+            this.usedFields.push('energy');
+            console.warn('No data here, standard aspects of impekt');
+        }
         this.usedFields = this.usedFields.filter((item, pos) => this.usedFields.indexOf(item) == pos);
     }
     loader(show) {
@@ -378,9 +384,12 @@ class graph {
         this.mainGroup.attr("transform", "translate(" + settings.margin.left + "," + settings.margin.top + ")");
         this.svg.style('fill', '#ef0');
     }
-    setMode(mode) {
+    setTypeOfComparison(mode) {
         this.TypeOfComparison = mode;
         this.update();
+    }
+    changeMode(mode) {
+        console.log('Go to ', mode);
     }
     errors(active, message, techinal) {
         if (active) {
@@ -697,6 +706,11 @@ class graph {
     }
 }
 (function (graph) {
+    let mode;
+    (function (mode) {
+        mode[mode["Simple"] = 0] = "Simple";
+        mode[mode["Advanced"] = 1] = "Advanced";
+    })(mode = graph.mode || (graph.mode = {}));
     let TypeOfComparison;
     (function (TypeOfComparison) {
         TypeOfComparison[TypeOfComparison["Compare"] = 0] = "Compare";
@@ -712,12 +726,14 @@ class graph {
         typeOfLink[typeOfLink["subimpekt"] = 0] = "subimpekt";
         typeOfLink[typeOfLink["variable"] = 1] = "variable";
     })(typeOfLink = graph.typeOfLink || (graph.typeOfLink = {}));
-    let typeOfController;
-    (function (typeOfController) {
-        typeOfController[typeOfController["toggle"] = 0] = "toggle";
-        typeOfController[typeOfController["slider"] = 1] = "slider";
-        typeOfController[typeOfController["internalStackCompare"] = 2] = "internalStackCompare";
-    })(typeOfController = graph.typeOfController || (graph.typeOfController = {}));
+    let typeOfVariable;
+    (function (typeOfVariable) {
+        typeOfVariable[typeOfVariable["toggle"] = 0] = "toggle";
+        typeOfVariable[typeOfVariable["slider"] = 1] = "slider";
+        typeOfVariable[typeOfVariable["internalStackCompare"] = 2] = "internalStackCompare";
+        typeOfVariable[typeOfVariable["internalSimpleAdvanced"] = 3] = "internalSimpleAdvanced";
+        typeOfVariable[typeOfVariable["picklist"] = 4] = "picklist";
+    })(typeOfVariable = graph.typeOfVariable || (graph.typeOfVariable = {}));
 })(graph || (graph = {}));
 class impekt {
     constructor(uid) {
@@ -779,22 +795,31 @@ class impekt {
                 xhr.open("POST", url, true);
                 xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
                 xhr.onreadystatechange = () => {
-                    if (xhr.readyState == 4 && xhr.status == 202) {
-                        try {
-                            let jsonData = JSON.parse(xhr.responseText);
-                            return resolve(this.bindData(jsonData[0]));
+                    if (xhr.readyState == 4) {
+                        if (xhr.status == 202) {
+                            try {
+                                let jsonData = JSON.parse(xhr.responseText);
+                                return resolve(this.bindData(jsonData[0]));
+                            }
+                            catch (e) {
+                                return reject(xhr.responseText);
+                            }
                         }
-                        catch (e) {
-                            return reject(xhr.responseText);
+                        else if (xhr.status == 400) {
+                            return reject(JSON.parse(xhr.responseText));
+                        }
+                        else if (xhr.status == 200) {
+                            console.error(xhr.responseText);
+                            return reject('Internal Error');
+                        }
+                        else {
+                            console.error(xhr);
+                            return reject('Wrong header: ' + xhr.status);
                         }
                     }
                     else {
                         if (xhr.status == 0) {
-                            return reject('Service down');
-                        }
-                        else if (xhr.status != 202) {
-                            console.error('wrong header', xhr);
-                            return reject('headers');
+                            return reject('Service down, status 0');
                         }
                     }
                 };
@@ -928,9 +953,17 @@ class link {
             this.subimpact.bindData(json);
             this.link_alias = json.short_code_name;
         }
-        if (this.link_type == graph.typeOfLink.variable) {
+        else if (this.link_type == graph.typeOfLink.variable) {
             this.variable = new variable().fromJSON(json);
+            this.variable.value = this.link_amount;
+            if (this.link_advanced)
+                this.variable.advanced = this.link_advanced;
+            if (this.link_changeable)
+                this.variable.changeable = this.link_changeable;
             this.link_alias = json.short_code_name;
+        }
+        else {
+            this.link_alias = json.link_alias;
         }
     }
     ;
@@ -942,7 +975,61 @@ class link {
             return given_variable.filter((e) => { return e.link_uid == this.link_uid; })[0].value;
         }
     }
+    ;
     getAlias() {
         return this.link_alias;
     }
+    ;
+    addToResource(elResource, elIncl) {
+        this.resource = new resource();
+        this.resource.create(this, elResource, elIncl);
+    }
+    addToTable(elTable, elControllers, callback) {
+        if (this.link_type == graph.typeOfLink.subimpekt) {
+            let subimpekt = this.subimpact;
+            elTable.append('tr')
+                .attr('class', 'graph-UI-table-tr graph-UI-table-impact')
+                .attr('title', 'drag me into the formula')
+                .html(`
+                    <td class="graph-UI-info-copy"><span data-type="` + graph.typeOfLink.subimpekt + `" data-name="` + subimpekt.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + subimpekt.short_code_name + `" data-value="` + this.link_uid + `">'>` + subimpekt.short_code_name + `</span></td>
+                    <td>` + subimpekt.title + ` (` + subimpekt.short_code_name + `)</td>
+                    <td colspan='2' style='text-align:center;' class='vari_` + subimpekt.short_code_name + `'><a href='#id_` + subimpekt.short_code_name + `' title='More information'>Fixed</a></td>
+                    <td></td>
+                `);
+        }
+        if (this.link_type == graph.typeOfLink.variable) {
+            let row = elTable.append('tr')
+                .attr('class', 'graph-UI-table-tr graph-UI-table-variable')
+                .attr('title', 'drag me into the formula');
+            row.append('td')
+                .attr('class', 'graph-UI-info-copy')
+                .html(`<span data-type="` + this.variable.type + `" data-name="` + this.variable.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + this.variable.short_code_name + `" data-value="` + this.link_uid + `">'>` + this.variable.short_code_name + `</span>`);
+            row.append('td')
+                .html(this.variable.title + `(` + this.variable.short_code_name + `)`);
+            let update = row.append('td')
+                .style('text-align', 'right')
+                .style('padding-right', '5px')
+                .html(this.variable.value.toString());
+            this.variable.elUpdate.push(update);
+            row.append('td')
+                .html(this.variable.unit);
+            let location;
+            if (this.link_advanced) {
+                location = row.append('td');
+            }
+            else {
+                location = elControllers;
+            }
+            this.variable.addConrollers(location, (subcallback) => { callback(subcallback); });
+        }
+    }
 }
+let settings = {
+    margin: { top: 40, right: 0, bottom: 30, left: 90 },
+    TypeOfComparison: 1,
+    ids: [100],
+    barheight: 50,
+    mode: graph.mode.Simple
+};
+let x;
+let color = ['#157a6e', '#ffba49', '#da2c38', '#87c38f', '#b8b8d1'];

@@ -1,8 +1,17 @@
-﻿class overlay {
-    show: true
+﻿
+
+
+// This script is used to add Edit functions
+
+// A use needs right for changing data
+
+class overlay {
     el: d3.Selection<HTMLElement, {}, HTMLElement, any>
     body: d3.Selection<HTMLElement, {}, HTMLElement, any>
     title: d3.Selection<HTMLElement, {}, HTMLElement, any>
+    tabs: d3.Selection<HTMLElement, {}, HTMLElement, any>
+    generalTab: d3.Selection<HTMLElement, {}, HTMLElement, any>
+
     constructor() {
         this.el = d3.select('.overlay')
         this.el.style('display', 'none')
@@ -15,15 +24,17 @@
 
 
 
-        background.on('click touch', () => { this.hideOverlay() })
-        close.on('click touch', () => { this.hideOverlay() })
+        background.on('click touch', () => { this.show(false) })
+        close.on('click touch', () => { this.show(false) })
     }
 
-    open(show: boolean) {
+    show(show: boolean) {
+        delete this.tabs
         if (show) {
             this.body.html('')
             this.openOverlay();
         } else {
+
             this.hideOverlay();
         }
 
@@ -32,7 +43,38 @@
     setTitle(title) {
         this.title.html(title)
     }
+    newTab(name: string, value: string | number) {
 
+        let first = false
+        if (typeof this.tabs == 'undefined') {
+            this.tabs = this.body.append('div').classed('overlay-tabs', true)
+            this.generalTab = this.body.append('div').classed('overlay-general', true)
+            first = true
+        }
+
+        let tabid = "tab_" + name
+
+        // Create body
+        let tabBody = this.body.append('div').classed('overlay-tab', true).style('display', 'none').attr('data-tab', tabid)
+        if (first) tabBody.style('display', '')
+
+        //Create header tab
+        let tab = this.tabs.append('div').attr('data-tab', tabid)
+        let tabInput = tab.append('input').attr('type', 'radio').attr('name', 'radio-buttons').attr('value', value).attr('id', tabid)
+        if (first) tabInput.property('checked', true)
+        tab.append('label').attr('for', tabid).html(name)
+        // create on change
+        tabInput.on('change', () => {
+            d3.selectAll('.overlay-tab').style('display', 'none')
+            tabBody.style('display', '')
+        })
+
+
+
+
+        return tabBody
+
+    }
     // Go into overlay
     openOverlay() {
         // Disbale scolling
@@ -80,6 +122,7 @@ class confirmButton {
                 buttonSure.style('display', 'none')
                 callback(location)
             })
+
     }
 }
 
@@ -239,6 +282,8 @@ class editUI extends UI {
     }
 
 
+
+    // // // Links  // // //
     databaseRequestLinks(search: string, divSuggestions: d3.Selection<HTMLDivElement, {}, HTMLElement, any>, type: number) {
 
 
@@ -305,96 +350,165 @@ class editUI extends UI {
         }
 
     }
+    overlayerNewVariableValidate(body, type) {
+
+        let newVariable = new variable
+
+        // Save inputs in a function
+        let appendToJson = (input) => {
+            let value = input.value
+            let key = input.getAttribute('name')
+            newVariable[key] = value
+        }
+        // Loop trough Iputs
+        body.selectAll('input').each((d, i, arr) => { appendToJson(arr[i]) })
+        this.overlay.generalTab.selectAll('input').each((d, i, arr) => { appendToJson(arr[i]) })
+
+        // Set defaults
+        newVariable.type = type
+        newVariable.link_uid = -999
+
+        // Add to UI
+        this.VariabletoUI(newVariable,
+            {
+
+                // link_linked_id: undefined,
+
+                link_amount: 1,
+
+                link_descr: 'Why did you add this variables to this impekt',
+                link_changeable: 1,
+                link_advanced: 1,
+                link_version: 0,
+                link_linked_id: 'given_by_db',
+                link_alias: newVariable.short_code_name,
+
+                link_uid: newVariable.link_uid
+
+            }
+        )
+
+    }
+    overlayerNewVariable() {
+
+        this.overlay.show(true)
+        this.overlay.setTitle('Create Variable')
+
+        // Sliders
+        let sliderBody = this.overlay.newTab('Slider', graph.typeOfVariable.slider)
+        sliderBody.append('label').style('flex', '1 1 30%').html('Min').append('input').attr('name', 'min').attr('value', 'TESTvalue1')
+        sliderBody.append('label').style('flex', '1 1 30%').html('Max').append('input').attr('name', 'max').attr('value', 'TESTvalue1')
+        sliderBody.append('label').style('flex', '1 1 30%').html('Default').append('input').attr('name', 'value1').attr('value', 'TESTvalue1')
+        //sliderBody.append('span').style('flex', '0 0 100%').html('Save').attr('name', 'value1').attr('value', 'TESTvalue1')
+        new confirmButton(sliderBody.append('div').style('flex', '1 1 100%'), 'Save', 'overlay-button', 'TilteSave data in Database', () => {
+            this.overlayerNewVariableValidate(sliderBody, graph.typeOfVariable.slider)
+        })
+
+
+        // < span class="overlay-button" title = "Save data in Database" style = "flex:0 0 100%;" > Save < /span>
+
+        // SliderBody
+        let toggleBody = this.overlay.newTab('Toggle', graph.typeOfVariable.toggle)
+        toggleBody.append('label').style('flex', '1 1 50%').html('Alias 1').append('input').attr('name', 'alias1').attr('value', 'TESTvalue1')
+        toggleBody.append('label').style('flex', '1 1 50%').html('Value 1').append('input').attr('name', 'value1').attr('value', 'TESTvalue1')
+        toggleBody.append('label').style('flex', '1 1 50%').html('Alias 2').append('input').attr('name', 'alias2').attr('value', 'TESTvalue1')
+        toggleBody.append('label').style('flex', '1 1 50%').html('Value 2').append('input').attr('name', 'value2').attr('value', 'TESTvalue1')
+        new confirmButton(toggleBody.append('div').style('flex', '1 1 100%'), 'Save', 'overlay-button', 'TilteSave data in Database', () => {
+            this.overlayerNewVariableValidate(toggleBody, graph.typeOfVariable.toggle)
+        })
+        // Pick List
+        let pickBody = this.overlay.newTab('PickList', graph.typeOfVariable.picklist)
+        pickBody.append('label').style('flex', '1 1 50%').html('Aliases').append('input').attr('name', 'alias1').attr('value', 'TESTvalue1')
+        pickBody.append('label').style('flex', '1 1 50%').html('Values').append('input').attr('name', 'value1').attr('value', 'TESTvalue1')
+        new confirmButton(pickBody.append('div').style('flex', '1 1 100%'), 'Save', 'overlay-button', 'TilteSave data in Database', () => {
+            this.overlayerNewVariableValidate(pickBody, graph.typeOfVariable.picklist)
+        })
+
+        // General Inputs
+        this.overlay.generalTab.append('label').style('flex', '0 1 100%').append('input').attr('name', 'title').attr('value', 'TESTvalue1')
+        this.overlay.generalTab.append('label').append('input').attr('name', 'sub_title').attr('value', 'TESTvalue1')
+        this.overlay.generalTab.append('label').append('input').attr('name', 'long_code_name').attr('value', 'TESTvalue1')
+        this.overlay.generalTab.append('label').append('input').attr('name', 'short_code_name').attr('value', 'TESTvalue1')
+        this.overlay.generalTab.append('label').append('input').attr('name', 'unit').attr('value', 'TESTvalue1')
+        this.overlay.generalTab.append('label').style('flex', '0 1 100%').append('textarea').attr('name', 'unit').html('TESTvalue1')
+    }
 
     // ADd new link
     overlayerNewLink() {
-        this.overlay.open(true)
-        this.overlay.setTitle('Add new item')
-        let overlay = this.overlay.body
 
-
-        // Sub impekts
-        let divPick = overlay.append('div').attr('class', 'newItem-pick-div')
-        let subimpekt = divPick.append('div')
-        subimpekt.append('input').attr('id', 'newItem-pick-option1').attr('type', 'radio').attr('name', 'newItemPick')
-            .attr('value', graph.typeOfLink.subimpekt)
-            .on('change', () => {
-                divInputSub.style('display', '')
-                divInputVari.style('display', 'none')
-            })
-        subimpekt.append('label').attr('for', 'newItem-pick-option1').html('subimpekt')
-        let divInputSub = overlay.append('div').attr('class', 'newItem-input-div newItem-input-div-sub').style('display', 'none')
-        let inputSub = divInputSub.append('input').attr('class', 'newItem-input').attr('placeholder', 'Start typing...').attr('value', 'igh')
-        inputSub.on('keyup paste copy cut', () => {
-            let value: string = inputSub.property('value');
-            if ([16, 17, 18, 32, 27, 37, 38, 39, 40].indexOf(d3.event.keyCode) < 0) {
-                clearTimeout(this.timeout);
-                this.timeout = setTimeout(() => {
-                    if (value.length > 2) {
-                        divSuggestionsSub.html('')
-                        this.databaseRequestLinks(value, divSuggestionsSub, graph.typeOfLink.subimpekt)
-                    }
-
-                }, 400);
-            }
-
-        })
-        let divSuggestionsSub = divInputSub.append('div').attr('class', 'newItem-suggestions-div')
-
+        this.overlay.show(true)
+        this.overlay.setTitle('Add resource')
 
 
         // Variables
-        let variable = divPick.append('div')
-        variable.append('input').attr('id', 'newItem-pick-option2').attr('type', 'radio').attr('name', 'newItemPick')
-            .attr('value', graph.typeOfLink.variable).property('checked', true)
-            .on('change', () => {
-                divInputSub.style('display', 'none')
-                divInputVari.style('display', '')
-            })
-        variable.append('label').attr('for', 'newItem-pick-option2').html('variable')
-        let divInputVari = overlay.append('div').attr('class', 'newItem-input-div newItem-input-div-vari')
-        let inputVari = divInputVari.append('input').attr('class', 'newItem-input').attr('placeholder', 'Start typing...').attr('value', 'anc')
-        inputVari.on('keyup paste copy cut', () => {
-            let value: string = inputSub.property('value');
+        let variableBody = this.overlay.newTab('Variable', graph.typeOfLink.variable)
+        let variableInput = variableBody.append('input').attr('placeholder', 'Start typing...').style('flex', '1 1 100%')
+
+        variableBody.append('span').attr('class', 'overlay-button').style('flex', '0 0 auto').html('Create new').on('click touch', () => { this.overlayerNewVariable() })
+        let variableResults = variableBody.append('div').html('Start typing...').style('flex', '1 1 100%')
+        variableInput.on('keyup paste copy cut', (d, i, arr) => {
+            let value: string = arr[i].value
             if ([16, 17, 18, 32, 27, 37, 38, 39, 40].indexOf(d3.event.keyCode) < 0) {
                 clearTimeout(this.timeout);
                 this.timeout = setTimeout(() => {
                     if (value.length > 2) {
-                        divSuggestionsVari.html('')
-                        this.databaseRequestLinks(value, divSuggestionsVari, graph.typeOfLink.variable)
+                        variableResults.html('')
+                        this.databaseRequestLinks(value, variableResults, graph.typeOfLink.variable)
                     }
-
                 }, 400);
             }
-
         })
-        let divSuggestionsVari = divInputVari.append('div').attr('class', 'newItem-suggestions-div')
 
-
-
-
+        // Sub impekts
+        let subimpektBody = this.overlay.newTab('Sub impekts', graph.typeOfLink.subimpekt)
+        let subimpektInput = subimpektBody.append('input').attr('placeholder', 'Start typing...').style('flex', '1 1 100%')
+        let subimpektResults = subimpektBody.append('div').html('Start typing...').style('flex', '1 1 100%')
+        subimpektInput.on('keyup paste copy cut', (d, i, arr) => {
+            let value: string = arr[i].value
+            if ([16, 17, 18, 32, 27, 37, 38, 39, 40].indexOf(d3.event.keyCode) < 0) {
+                clearTimeout(this.timeout);
+                this.timeout = setTimeout(() => {
+                    if (value.length > 2) {
+                        subimpektResults.html('')
+                        this.databaseRequestLinks(value, subimpektResults, graph.typeOfLink.subimpekt)
+                    }
+                }, 400);
+            }
+        })
     }
     addNewVariable(var_id) {
 
         // Get variable
         let newVariable = new variable()
+
+        newVariable.fromID(var_id).then(() => {
+
+            this.VariabletoUI(newVariable, {})
+        });
+    }
+
+
+    VariabletoUI(newVariable, linkJson) {
         newVariable.elControllers = this.graph.elControllers;
         newVariable.elTable = this.elTable;
-        newVariable.fromID(var_id).then(() => {
-            // Defaults
-            newVariable.value = 0
-            //newVariable.link_linked_id = var_id
+        // Defaults
+        newVariable.value = 1
 
-            // Add to data
-            this.graph.variables.push(newVariable);
-            //this.graph.impekts[0].variables.push(newVariable);
+        // Add to data
+        this.graph.variables.push(newVariable);
 
-            // Update UI
-            newVariable.addToUI(() => { this.graph.update() });
-
-            this.overlay.open(false);
-            this.makeTableRowDraggable()
+        // Update UI
+        newVariable.addToUI(this.graph.elControllers, () => {
+            this.graph.update();
+            this.makeTableRowDraggable();
         });
+        let newLink = new link(linkJson);
+        newLink.variable = newVariable;
+        console.log(newLink)
+        this.graph.impekts[0].links.push(newLink);
+        this.overlay.show(false);
+        this.makeTableRowDraggable()
+        this.startEdit();
     }
 
     addNewSubImpekt(impekt_uid) {
@@ -409,9 +523,9 @@ class editUI extends UI {
             //this.graph.impekts[0].subimpact.push(subimpekt);
 
             // Add to table
-            this.addAdvancedSubImpekt(subimpekt)
-            this.makeTableRowDraggable()
-            this.overlay.open(false);
+            //this.addAdvancedSubImpekt(subimpekt)
+            //this.makeTableRowDraggable()
+            //this.overlay.show(false);
         })
 
     }
@@ -469,7 +583,7 @@ class editUI extends UI {
 
     // Edit Text elements
     // Adds a button, and place the other text in a span
-    buttonEdit = (item, fieldname: string, type, callback) => {
+    buttonEdit(item, fieldname: string, type, callback) {
 
 
 
@@ -583,7 +697,7 @@ class editUI extends UI {
 
 
         // Cleanup
-        
+
         delete this.graph.impekts[0].calculatedData
         this.graph.impekts[0].formula = this.graph.impekts[0].formula.map(formula => {
             delete formula.evalValue
@@ -594,26 +708,26 @@ class editUI extends UI {
 
         /*editImpekt.impactvariables = []
         editImpekt.subimpact = []*/
-       /* editImpekt.links = <any>editImpekt.links.map((link) => {
-            if (link.link_type == graph.typeOfLink.variable) {
-                editImpekt.impactvariables.push(
-                    link.toJson()
-                )
-            }
-            if (link.link_type == graph.typeOfLink.subimpekt) {
-                editImpekt.subimpact.push(
-                    link.toJson()
-                )
-            }
-            return link.link_uid;
-        })*/
+        /* editImpekt.links = <any>editImpekt.links.map((link) => {
+             if (link.link_type == graph.typeOfLink.variable) {
+                 editImpekt.impactvariables.push(
+                     link.toJson()
+                 )
+             }
+             if (link.link_type == graph.typeOfLink.subimpekt) {
+                 editImpekt.subimpact.push(
+                     link.toJson()
+                 )
+             }
+             return link.link_uid;
+         })*/
 
         let editJSON = JSON.stringify(this.graph.impekts[0]);
         console.warn(editJSON)
 
 
 
-        
+
 
 
         let promise = new Promise<any>((resolve, reject) => {
@@ -630,7 +744,7 @@ class editUI extends UI {
                             resolve(JSON.parse(xhr.responseText));
                         }
                         catch (e) {
-                            
+
                             reject(xhr.responseText);
                         }
 
@@ -692,9 +806,6 @@ class editUI extends UI {
 
 
 }
-
-
-
 module editUI {
 
     export enum editDivType {
@@ -710,15 +821,32 @@ module editUI {
 }
 
 
-let z
-
 window.onload = () => {
-    x = new graph();
-    y = new editUI(x);
-    x.buildGraph().then(() => {
-        y.update();
-        y.startEdit();
-        y.startEdit();
-        window.scrollTo(0, 0);
+
+    // use GET parameter for IDs
+    let para: any = parseURLParams(window.location.href)
+    if (para == false) { } else {
+        if (typeof para.id !== 'undefined') {
+            let ids = []
+            para.id.map((x) => { x.split(';').map((y) => { ids.push(y) }) })
+            settings.ids = ids
+        }
+    }
+
+    // Create graph
+    let newGraph = new graph();
+    // Create interface with 
+    x = new editUI(newGraph);
+    newGraph.buildGraph().then(() => {
+        x.update();
+        x.toggleAdvanced(true);
+        x.startEdit();
+        //console.log(x.stackMax)
+        //console.log(x.stackMax)
+        //y.pushFormula();
+        // window.scrollTo(0, 800);
     });
+
+   // x.overlayerNewLink();
+
 };

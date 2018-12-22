@@ -1,16 +1,119 @@
 ﻿
 
-/* This Typescript is meant for Impekt Viewer */
+// This Typescript is meant for Impekt Viewer 
 
+
+
+function parseURLParams(url: string) {
+    let queryStart = url.indexOf("?") + 1,
+        queryEnd = url.indexOf("#") + 1 || url.length + 1,
+        query = url.slice(queryStart, queryEnd - 1),
+        pairs = query.replace(/\+/g, " ").split("&"),
+        parms = {}, i, n, v, nv;
+
+    if (query === url || query === "") return false;
+
+    for (i = 0; i < pairs.length; i++) {
+        nv = pairs[i].split("=", 2);
+        n = decodeURIComponent(nv[0]);
+        v = decodeURIComponent(nv[1]);
+
+        if (!parms.hasOwnProperty(n)) parms[n] = [];
+        parms[n].push(nv.length === 2 ? v : null);
+    }
+
+    return parms;
+
+}
 function toggleMenu(x) {
     x.parentNode.parentNode.classList.toggle("header-menu-open");
+}
+class viewLink {
+    link.
+}
+class resource {
+    elResource: d3.Selection<HTMLElement, {}, HTMLElement, any>
+    elResourceDiv: d3.Selection<HTMLElement, {}, HTMLElement, any>
+    elIncl: d3.Selection<HTMLElement, {}, HTMLElement, any>
+    elInclLink: d3.Selection<HTMLElement, {}, HTMLElement, any>
+    link_type: graph.typeOfLink
+    id: string 
+    alias: string
+
+    // On create and delete
+    create(oneLink: link, elResource, elIncl) {
+
+        this.elResource = elResource;
+        this.elIncl = elIncl;
+        this.link_type = oneLink.link_type
+
+        if (this.link_type === graph.typeOfLink.variable) {
+            this.alias = oneLink.variable.short_code_name
+            this.id = this.alias
+            this.addResourceVariable(oneLink)
+        }
+        if (this.link_type === graph.typeOfLink.subimpekt) {
+            this.alias = oneLink.subimpact.short_code_name
+            this.id = this.alias
+            this.addResourceImpekt(oneLink)
+        }
+        this.addToIcl()
+    }
+    remove() {
+        this.elResourceDiv.remove()
+    }
+
+    // On create per type
+    addResourceImpekt(oneLink: link) {
+        this.elResourceDiv = this.elResource.append('div').attr('id', this.id).attr('class', 'resource resource-sub')
+
+        this.elResourceDiv.append('div').html(oneLink.subimpact.title)
+        this.elResourceDiv.append('div').html(oneLink.subimpact.sub_title)
+        this.elResourceDiv.append('div').html(oneLink.subimpact.long_code_name)
+        this.elResourceDiv.append('div').html(oneLink.subimpact.short_code_name)
+        this.elResourceDiv.append('div').html(oneLink.subimpact.maingroup)
+        this.elResourceDiv.append('div').html(oneLink.subimpact.subgroup)
+        this.elResourceDiv.append('div').html(oneLink.link_descr)
+
+
+
+    }
+
+    addResourceVariable(oneLink: link) {
+        this.elResourceDiv = this.elResource.append('div').attr('id', this.id).attr('class', 'resource resource-vari')
+
+        this.elResourceDiv.append('div').html(oneLink.variable.title)
+        this.elResourceDiv.append('div').html(oneLink.variable.sub_title)
+        this.elResourceDiv.append('div').html(oneLink.variable.long_code_name)
+        this.elResourceDiv.append('div').html(oneLink.variable.short_code_name)
+        this.elResourceDiv.append('div').html(oneLink.variable.descr)
+        this.elResourceDiv.append('div').html(oneLink.link_descr)
+    }
+
+
+    // Add and remove from index
+    addToIcl() {
+        this.elInclLink = this.elIncl
+            .append('a')
+            .attr('href',"#" + this.id)
+            .html(this.alias)
+    }
+    removeFromIcl() {
+        this.elInclLink.remove();
+    }
 }
 
 
 class UI {
+
+
+
+
     graph: graph
     title: string = ''
     subtitle: string = ''
+    resources: resource[] = [];
+
     elUI: d3.Selection<HTMLElement, {}, HTMLElement, any>
     elFormula: d3.Selection<HTMLElement, {}, HTMLElement, any>
     elAdvanced: d3.Selection<HTMLElement, {}, HTMLElement, any>
@@ -20,6 +123,8 @@ class UI {
     elTable: d3.Selection<HTMLElement, {}, HTMLElement, any>
     elImpekt: d3.Selection<HTMLElement, {}, HTMLElement, any>
     elResource: d3.Selection<HTMLElement, {}, HTMLElement, any>
+    elTitle: d3.Selection<HTMLElement, {}, HTMLElement, any>
+    elIncl: d3.Selection<HTMLElement, { }, HTMLElement, any >
     timeout: any
 
 
@@ -32,6 +137,13 @@ class UI {
         this.elFormula = this.elUI.append('div').attr('class', 'graph-UI-formula')
         this.elImpekt = this.elUI.append('div').attr('class', 'graph-UI-impekt')
         this.elResource = this.elUI.append('div').attr('class', 'graph-UI-resource')
+
+        // Including
+        this.elResource.append('h4').html("Resources")
+        this.elIncl = this.elResource.append('div').attr('class', 'graph-UI-resource-incl')
+
+        this.elTitle = d3.select("#page").insert('h1', '.graph-graph').attr('class', 'graph-title')
+
     }
 
     // Update UI
@@ -43,23 +155,28 @@ class UI {
             this.addAdvanced();
             this.addAdvancedFormula();
             this.addImpektDesc();
-            this.addResource()
         }
-        this.addVariable()
-        this.makeTableRowDraggable();
-    }
+        //this.addVariable()
 
-    // Updates the variables inside graph (also used for calculating data)
-    addVariable() {
-        this.graph.variables.map((variable) => {
-            variable.elTable = this.elTable
-            variable.addToUI(() => {
-                this.graph.update();
-                this.makeTableRowDraggable();
-            });
-
+        // Add links 
+        this.graph.impekts.map((impekt) => {
+            impekt.links.map((link) => {
+                // Add to table
+                link.addToTable(this.elTable, this.graph.elControllers,
+                    () => {// On change
+                    this.graph.update();
+                    this.makeTableRowDraggable();
+                });
+                // Add to bottom
+                link.addToResource(this.elResource, this.elIncl);
+            })
         })
+
     }
+
+
+
+
 
     // Get from a change in formula (typing or adding HR-tag)
     decodeFormula() {
@@ -126,10 +243,11 @@ class UI {
             this.title = this.graph.impekts.map(x => x.title).join(' ')
             this.subtitle = ''
         }
-        d3.selectAll('.graph-title').remove()
-        d3.select('.graph-container')
+        //d3.selectAll('.graph-title').remove()
+        /*d3.select('.graph-container')
             .insert('h1', '.graph-graph')
-            .attr('class', 'graph-title')
+            .attr('class', 'graph-title')*/
+        this.elTitle
             .html('<div id="graph-UI-title-main">' + this.title + '</div>' + subtitleString)
     }
     // Add text formula to mainpage
@@ -188,11 +306,11 @@ class UI {
 
         // Overview Table
         this.elTable = this.elInfo.append('table')
-        this.elTable.append('tr').html("<th></th><th>Forumla</th><th colspan='2' style='text-align:center;	padding: 5px 20px 5px 0;' >Value</th><th></th>")
+        this.elTable.append('tr').html("<th></th><th>Forumla</th><th colspan='2' style='text-align:center;	padding: 5px 20px 5px 0;' >Value</th><th></th><th></th>")
 
         // Add subimpekts to table
-        y.graph.impekts[0].links.filter(e => e.subimpact).map((link) => {
-            this.addAdvancedSubImpekt(link);
+        this.graph.impekts[0].links.filter(e => e.subimpact).map((link) => {
+            //this.addAdvancedSubImpekt(link);
         })
         // Variables are added later to the table
 
@@ -304,17 +422,9 @@ class UI {
 
 
     }
-    addAdvancedSubImpekt(link: link) {
-        let subimpekt = link.subimpact;
-        this.elTable.append('tr')
-            .attr('class', 'graph-UI-table-tr graph-UI-table-impact')
-            .attr('title', 'drag me into the formula')
-            .html(`
-                    <td class="graph-UI-info-copy"><span data-type="`+ graph.typeOfLink.subimpekt + `" data-name="` + subimpekt.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + subimpekt.short_code_name + `" data-value="` + link.link_uid + `">'>` + subimpekt.short_code_name + `</span></td>
-                    <td>` + subimpekt.title + ` (` + subimpekt.short_code_name + `)</td>
-                    <td colspan='2' style='text-align:center;' class='vari_` + subimpekt.short_code_name + `'><a href='#id_` + subimpekt.short_code_name + `' title='More information'>Fixed</a></td>
-                `)
-    }
+
+
+
     // Adds information about impekt
     addImpektDesc() {
         this.elImpekt.html('')
@@ -330,30 +440,11 @@ class UI {
             this.elImpekt.append('h4').html("Known exclusions")
             this.elImpekt.append('p').html(singleImpekt.excl).attr('class', 'graph-expl-exclusions')//.attr('data-json', 'jsonData[0].excl')
         }
-
-
-
-
     }
-    addResource() {
-        // Get all resources
-        let list: string[] = []
-        this.graph.impekts.map(impekt => {
-            /*impekt.impactvariables.map((vari) => {
-                list.push(vari.short_code_name);
-            })*/
-        })
-        this.graph.impekts.map(impekt => {
-            /*impekt.subimpact.map((subs) => {
-                list.push(subs.short_code_name);
-            })*/
-        })
 
-        var inlc = this.elImpekt.append('p').attr('class', 'graph-expl-included').html('<h4>Including</h4>')
-        list.map(x => inlc.append('a').html('<a href="#resource_' + x + '">' + x + '</a>'))
-    }
 
     ///////////// Controllers /////////////
+
 
     //Show or Hide advanced section
     toggleAdvanced(show?: boolean) {
@@ -383,15 +474,17 @@ class UI {
     makeTableRowDraggable() {
         // Drag and drop function
         this.elTable
-            .selectAll('tr + tr').each(function () { d3.select(this) })
+            .selectAll('tr + tr>td:nth-child(2)').each(function () { d3.select(this) })
             .call(d3.drag()
+
                 .on("start", (d, i, arr) => {
 
                     let info = this.elInfo
                     let divFormulas = this.elAdvancedForm//.selectAll('.graph-UI-input')
                     // First time update mouse
                     let coords = d3.mouse(info.node())
-                    let dragable = d3.select(arr[i]).select('.graph-UI-info-copy span')
+                    console.log(arr[i])
+                    let dragable = d3.select(arr[i].parentElement).select('.graph-UI-info-copy span')
 
 
                     clearTimeout(this.timeout);
@@ -484,7 +577,7 @@ class UI {
 
                     let coords = d3.mouse(info.node())
                     // console.log(coords)
-                    let dragable = d3.select(arr[i]).select('.graph-UI-info-copy span')
+                    let dragable = d3.select(arr[i].parentElement).select('.graph-UI-info-copy span')
                     dragable.style('margin-top', "-30px")
                     if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
                         dragable.style('margin-top', "-30px")
@@ -498,7 +591,7 @@ class UI {
                     //console.clear()
                     // Basics and reset
                     let inputBars = (this.elAdvancedForm)//.selectAll('.graph-UI-input') 
-                    var dragable = d3.select(arr[i]).select('.graph-UI-info-copy span')
+                    var dragable = d3.select(arr[i].parentElement).select('.graph-UI-info-copy span')
 
                     dragable
                         .style('position', "relative").style('left', "")
@@ -529,6 +622,8 @@ class UI {
                                 inputBar.html(inputBar.html().replace(regstr, ''))
                             }
                         })
+                        // Update HR blocks
+                        this.resizeAllFormulaBlocks();
                         this.decodeFormula()
                     }
                     // Go back and do nothing (user missed gray boxes)
@@ -546,27 +641,41 @@ class UI {
                     // reset layout
                     inputBars.map(function (d, e, i) { d3.select(this).style('min-height', '').transition().duration(500).style('padding', '') })
 
-                    // Update HR blocks
-                    this.resizeAllFormulaBlocks();
+
 
                 })// end click-end
+
             ); // end call
 
     }
 }
 
 
-let y
 
 window.onload = () => {
-    x = new graph();
-    y = new UI(x);
-    x.buildGraph().then(() => {
-        y.update();
-        y.toggleAdvanced(true);
+
+    // use GET parameter for IDs
+    let para: any = parseURLParams(window.location.href)
+
+    if (para == false) { } else {
+        if (typeof para.id !== 'undefined') {
+            let ids = []
+            para.id.map((x) => { x.split(';').map((y) => { ids.push(y) }) })
+            settings.ids = ids
+        }
+    }
+    
+
+    // Create graph
+    let newGraph = new graph();
+    // Create interface with 
+    x = new UI(newGraph);
+    newGraph.buildGraph().then(() => {
+        x.update();
+        x.toggleAdvanced(true);
         //console.log(x.stackMax)
         //console.log(x.stackMax)
-        //y.pushFormula();
-        window.scrollTo(0, 800);
+        //x.pushFormula();
+        // window.scrollTo(0, 800);
     });
 };
