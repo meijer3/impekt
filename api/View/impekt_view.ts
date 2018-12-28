@@ -3,34 +3,28 @@
 // This Typescript is meant for Impekt Viewer 
 
 
-
 function parseURLParams(url: string) {
     let queryStart = url.indexOf("?") + 1,
         queryEnd = url.indexOf("#") + 1 || url.length + 1,
         query = url.slice(queryStart, queryEnd - 1),
         pairs = query.replace(/\+/g, " ").split("&"),
         parms = {}, i, n, v, nv;
-
     if (query === url || query === "") return false;
-
     for (i = 0; i < pairs.length; i++) {
         nv = pairs[i].split("=", 2);
         n = decodeURIComponent(nv[0]);
         v = decodeURIComponent(nv[1]);
-
         if (!parms.hasOwnProperty(n)) parms[n] = [];
         parms[n].push(nv.length === 2 ? v : null);
     }
-
     return parms;
-
 }
+
 function toggleMenu(x) {
     x.parentNode.parentNode.classList.toggle("header-menu-open");
 }
-class viewLink {
-    link.
-}
+
+
 class resource {
     elResource: d3.Selection<HTMLElement, {}, HTMLElement, any>
     elResourceDiv: d3.Selection<HTMLElement, {}, HTMLElement, any>
