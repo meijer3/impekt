@@ -1,4 +1,4 @@
-function PrettyNumber(num) {
+function PrettyNumber(num, number) {
     let significance = 3;
     let strlen;
     let clean;
@@ -10,19 +10,19 @@ function PrettyNumber(num) {
         strlen = (num.toFixed(0) + '').length;
         clean = Math.pow(10, strlen - significance);
         RNum = parseInt((num / clean).toFixed(0)) * clean;
-        return RNum.toLocaleString('fr-EG');
+        return (number) ? RNum : RNum.toLocaleString('fr-EG');
     }
     else if (num > 1) {
         strlen = (num.toFixed(0) + '').length;
         clean = Math.pow(10, strlen - significance + 1);
         RNum = parseInt((num / clean).toFixed(1)) * clean;
-        return RNum.toLocaleString('fr-EG');
+        return (number) ? RNum : RNum.toLocaleString('fr-EG');
     }
     else {
         num = num.toFixed(100);
         clean = Math.abs(Math.floor(Math.log10(num)));
         RNum = (num + '').substring(0, clean + significance + 1);
-        return RNum.substring(0, 4) + " " + RNum.substring(4).replace(/(.{3})/g, "$1");
+        return (number) ? RNum : RNum.substring(0, 4) + " " + RNum.substring(4).replace(/(.{3})/g, "$1");
     }
 }
 class tooltip {
@@ -134,9 +134,10 @@ class toggleVariable {
     }
 }
 class sliderVariable {
-    constructor(min, max, value, alias, unit, parentNode) {
+    constructor(min, max, step, value, alias, unit, parentNode) {
         this.min = min;
         this.max = max;
+        this.step = step;
         this.value = value;
         this.alias = alias;
         this.unit = unit;
@@ -144,7 +145,6 @@ class sliderVariable {
         this.createHTML();
     }
     createHTML() {
-        this.step = (this.max - this.min) / 20;
         this.id = 'variable_' + this.alias;
         this.el = this.parentNode.append('div').attr('class', 'graph-buttons-slider')
             .attr('title', this.alias);
@@ -192,7 +192,6 @@ class variable {
     }
     fromJSON(json) {
         this.link_uid = json.link_uid;
-        this.value = 123;
         this.long_code_name = json.long_code_name;
         this.short_code_name = json.short_code_name;
         this.sub_title = json.sub_title;
@@ -206,6 +205,7 @@ class variable {
         this.type = json.type;
         this.max = json.max;
         this.min = json.min;
+        this.step = json.step;
         this.value1 = json.value1;
         this.alias1 = json.alias1;
         this.value2 = json.value2;
@@ -243,7 +243,7 @@ class variable {
         }
     }
     addSlider(elControllers, callback) {
-        let newslider = new sliderVariable(this.min, this.max, this.value, this.short_code_name, this.unit, elControllers);
+        let newslider = new sliderVariable(this.min, this.max, this.step, this.value, this.short_code_name, this.unit, elControllers);
         newslider.elUpdate = this.elUpdate;
         newslider.activate((amount) => {
             this.elUpdate.map((locations) => {
@@ -336,13 +336,6 @@ class graph {
         }));
     }
     addButtons() {
-        let internalSimpleAdvanced = new variable();
-        internalSimpleAdvanced.elControllers = this.elControllers;
-        internalSimpleAdvanced.internalSimpleAdvanced();
-        internalSimpleAdvanced.type = graph.typeOfVariable.internalSimpleAdvanced;
-        internalSimpleAdvanced.addToggle(this.elControllers, (mode) => {
-            this.changeMode(mode);
-        });
         let internalStackCompare = new variable();
         internalStackCompare.elControllers = this.elControllers;
         internalStackCompare.internalStackCompare();
@@ -766,19 +759,18 @@ class impekt {
                 let newLink = new impektdata(e);
                 this.impactdata.push(newLink);
             });
-            if (Array.isArray(json.impactvariables)) {
-                json.impactvariables.map(e => {
-                    let newLink = new link(e);
-                    this.links.push(newLink);
-                });
-            }
             if (Array.isArray(json.subimpact)) {
                 json.subimpact.map((e, i) => {
                     let newLink = new link(e);
                     this.links.push(newLink);
                 });
             }
-            console.log('Links:', this.links);
+            if (Array.isArray(json.impactvariables)) {
+                json.impactvariables.map(e => {
+                    let newLink = new link(e);
+                    this.links.push(newLink);
+                });
+            }
             return this;
         }
         catch (e) {
@@ -811,6 +803,9 @@ class impekt {
                         else if (xhr.status == 200) {
                             console.error(xhr.responseText);
                             return reject('Internal Error');
+                        }
+                        else if (xhr.status == 0) {
+                            return reject('Highlikely SSL error');
                         }
                         else {
                             console.error(xhr);
@@ -853,8 +848,11 @@ class impekt {
                         hrParts[i] = '<hr class="graph-UI-input-tags" data-alias="' + link.getAlias() + '" data-value="' + x + '">';
                     }
                     else {
-                        console.error('getFormula Unknown Tag in Formula: ', x, this.links.map(e => e.link_uid));
-                        callback('getFormula Unknown Tag in Formula: ' + x);
+                        if (Number.isNaN(x)) {
+                            x = evalValueParts[i];
+                        }
+                        console.error('Tag', x, ' unknown in formula: ', formula, 'available codes: ', this.links.map(e => e.link_uid));
+                        callback('There is a unclear part in the formula: ' + x);
                     }
                 }
                 else {
@@ -949,7 +947,7 @@ class link {
         this.link_changeable = json.link_changeable;
         this.link_descr = json.link_descr;
         if (this.link_type == graph.typeOfLink.subimpekt) {
-            this.subimpact = new subimpekt(json.uid);
+            this.subimpact = new subimpekt(json.link_linked_id);
             this.subimpact.bindData(json);
             this.link_alias = json.short_code_name;
         }
@@ -972,7 +970,13 @@ class link {
             return this.subimpact.getSubImpektData(field);
         }
         if (this.link_type == graph.typeOfLink.variable) {
-            return given_variable.filter((e) => { return e.link_uid == this.link_uid; })[0].value;
+            let oneVar = given_variable.filter((variable) => { return variable.link_uid == this.link_uid; });
+            if (oneVar.length > 0) {
+                return oneVar[0].value;
+            }
+            else {
+                console.error('ERROR', given_variable, oneVar.length, this.link_uid);
+            }
         }
     }
     ;
@@ -980,49 +984,6 @@ class link {
         return this.link_alias;
     }
     ;
-    addToResource(elResource, elIncl) {
-        this.resource = new resource();
-        this.resource.create(this, elResource, elIncl);
-    }
-    addToTable(elTable, elControllers, callback) {
-        if (this.link_type == graph.typeOfLink.subimpekt) {
-            let subimpekt = this.subimpact;
-            elTable.append('tr')
-                .attr('class', 'graph-UI-table-tr graph-UI-table-impact')
-                .attr('title', 'drag me into the formula')
-                .html(`
-                    <td class="graph-UI-info-copy"><span data-type="` + graph.typeOfLink.subimpekt + `" data-name="` + subimpekt.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + subimpekt.short_code_name + `" data-value="` + this.link_uid + `">'>` + subimpekt.short_code_name + `</span></td>
-                    <td>` + subimpekt.title + ` (` + subimpekt.short_code_name + `)</td>
-                    <td colspan='2' style='text-align:center;' class='vari_` + subimpekt.short_code_name + `'><a href='#id_` + subimpekt.short_code_name + `' title='More information'>Fixed</a></td>
-                    <td></td>
-                `);
-        }
-        if (this.link_type == graph.typeOfLink.variable) {
-            let row = elTable.append('tr')
-                .attr('class', 'graph-UI-table-tr graph-UI-table-variable')
-                .attr('title', 'drag me into the formula');
-            row.append('td')
-                .attr('class', 'graph-UI-info-copy')
-                .html(`<span data-type="` + this.variable.type + `" data-name="` + this.variable.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + this.variable.short_code_name + `" data-value="` + this.link_uid + `">'>` + this.variable.short_code_name + `</span>`);
-            row.append('td')
-                .html(this.variable.title + `(` + this.variable.short_code_name + `)`);
-            let update = row.append('td')
-                .style('text-align', 'right')
-                .style('padding-right', '5px')
-                .html(this.variable.value.toString());
-            this.variable.elUpdate.push(update);
-            row.append('td')
-                .html(this.variable.unit);
-            let location;
-            if (this.link_advanced) {
-                location = row.append('td');
-            }
-            else {
-                location = elControllers;
-            }
-            this.variable.addConrollers(location, (subcallback) => { callback(subcallback); });
-        }
-    }
 }
 let settings = {
     margin: { top: 40, right: 0, bottom: 30, left: 90 },

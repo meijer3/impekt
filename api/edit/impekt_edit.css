@@ -90,8 +90,9 @@
         letter-spacing: 0.1px;
     }
 
-.UI-edit-warning{
-    color:#cf9902;
+.UI-edit-warning {
+    color: #ffc02c;
+    font-size: 70%;
 }
 
 .UI-edit-div {

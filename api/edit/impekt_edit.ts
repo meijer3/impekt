@@ -131,13 +131,11 @@ class editUI extends UI {
     editActive: boolean = false;
     overlay: overlay = new overlay();
 
-    // Empty, do to promise
+    ///////////// Go Edit Mode /////////////
     constructor(graph: graph) {
         super(graph)
 
-    }
-
-    // Start in promise of graph (not in contructor)
+    }       // Empty, because need promise
     startEdit() {
 
         // Remove everything of a previous session
@@ -155,23 +153,58 @@ class editUI extends UI {
 
 
         // Add adding buttons to some of the elements
-        this.buttonEdit(d3.select('#graph-UI-title-main'), 'Title', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].title = val; this.graph.impekts[0].edited = true })
-        this.buttonEdit(d3.select('#graph-UI-title-sub'), 'Sub title', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].sub_title = val; this.graph.impekts[0].edited = true })
-        this.buttonEdit(d3.select('#graph-UI-long-code'), 'Long code', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].long_code_name = val; this.graph.impekts[0].edited = true })
-        this.buttonEdit(d3.select('#graph-UI-short-code'), 'Short code', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].short_code_name = val; this.graph.impekts[0].edited = true })
-        this.buttonEdit(d3.select('#graph-UI-main-group'), 'Main group', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].maingroup = val; this.graph.impekts[0].edited = true })
-        this.buttonEdit(d3.select('#graph-UI-sub-group'), 'Sub group', editUI.editDivType.warning_oneline, (val) => { this.graph.impekts[0].subgroup = val; this.graph.impekts[0].edited = true })
-        this.buttonEdit(d3.select('#graph-UI-unit'), 'Unit', editUI.editDivType.oneline, (val) => { this.graph.impekts[0].unit = val; this.graph.impekts[0].edited = true })
+        this.buttonEdit(d3.select('#graph-UI-title-main'), 'Title', editUI.editDivType.oneline_desc, (val) => { this.graph.impekts[0].title = val; this.graph.impekts[0].edited = true })
+        this.buttonEdit(d3.select('#graph-UI-title-sub'), 'Sub title', editUI.editDivType.oneline_desc, (val) => { this.graph.impekts[0].sub_title = val; this.graph.impekts[0].edited = true })
+        this.buttonEdit(d3.select('#graph-UI-long-code'), 'Long code', editUI.editDivType.warning_oneline_desc, (val) => { this.graph.impekts[0].long_code_name = val; this.graph.impekts[0].edited = true })
+        this.buttonEdit(d3.select('#graph-UI-short-code'), 'Short code', editUI.editDivType.warning_oneline_desc, (val) => { this.graph.impekts[0].short_code_name = val; this.graph.impekts[0].edited = true })
+        this.buttonEdit(d3.select('#graph-UI-main-group'), 'Main group', editUI.editDivType.warning_oneline_desc, (val) => { this.graph.impekts[0].maingroup = val; this.graph.impekts[0].edited = true })
+        this.buttonEdit(d3.select('#graph-UI-sub-group'), 'Sub group', editUI.editDivType.warning_oneline_desc, (val) => { this.graph.impekts[0].subgroup = val; this.graph.impekts[0].edited = true })
+        this.buttonEdit(d3.select('#graph-UI-unit'), 'Unit', editUI.editDivType.oneline_desc, (val) => { this.graph.impekts[0].unit = val; this.graph.impekts[0].edited = true })
         this.buttonEdit(d3.select('#graph-UI-uid'), 'UID', editUI.editDivType.notAllowed, (val) => { })
         this.buttonEdit(d3.select('#graph-UI-id'), 'ID', editUI.editDivType.notAllowed, (val) => { })
 
-        this.buttonEdit(d3.select('.graph-expl-explanation'), 'Description', editUI.editDivType.multiline, (val) => { this.graph.impekts[0].descr = val; this.graph.impekts[0].edited = true })
+        this.buttonEdit(d3.select('.graph-expl-explanation'), 'Explanation', editUI.editDivType.multiline, (val) => { this.graph.impekts[0].descr = val; this.graph.impekts[0].edited = true })
         this.buttonEdit(d3.select('.graph-expl-exclusions'), 'Exclusions', editUI.editDivType.multiline, (val) => { this.graph.impekts[0].excl = val; this.graph.impekts[0].edited = true })
+
+        // All Resources
+        this.elResource.selectAll('.resource').each((d, i, arr) => {
+            let oneResource = d3.select(arr[i])
+            this.buttonEdit(oneResource.select('.resource-link_descr'), 'Description for this link', editUI.editDivType.multiline_desc, (val) => {
+                let codename = oneResource.attr('id')
+
+                //if (oneResource.classed('resource-vari')) {
+                this.graph.impekts[0].links.filter((link) => { return link.link_alias == codename }).map((link) => {
+                    link.link_descr = val
+                    link.edited = true;
+                    return link
+                })
+                // }
+
+
+
+
+
+                this.graph.impekts[0].edited = true;
+            })
+        });
 
 
         // Advanced block
         this.elTable.selectAll('tr[title]').each((d, i, arr) => {
-            new confirmButton(d3.select(arr[i]).append('td').attr('class', "UI-edit-td"), 'x', "UI-edit-delete", "delete", () => {
+            let row = d3.select(arr[i]);
+
+            /*if (this.link_advanced) {
+                row.append('td')
+                    .append('input')
+                    .attr('type', 'checkbox')
+                    .property('checked', true)
+
+            } else {
+                row.append('td').append('input').attr('type', 'checkbox')
+            }*/
+
+
+            new confirmButton(row.append('td').attr('class', "UI-edit-td"), 'x', "UI-edit-delete", "delete", () => {
                 this.removeLink(d3.select(arr[i]))
             })
         })
@@ -190,68 +223,47 @@ class editUI extends UI {
         })
         //this.overlayerNewLink()
         //d3.selectAll(".newItem-input-div-vari .newItem-input").dispatch('keyup');
-    }
+    }                     // Start in promise of graph (not in contructor)
+    addExtraCodes() {
+        d3.selectAll('#graph-UI-extras').remove()
+        let titleDiv = d3.select('.graph-title').append('div').attr('id', 'graph-UI-extras')
+        titleDiv.append('div').attr('id', 'graph-UI-long-code').html(this.graph.impekts[0].long_code_name)
+        titleDiv.append('div').attr('id', 'graph-UI-short-code').html(this.graph.impekts[0].short_code_name)
+        titleDiv.append('div').attr('id', 'graph-UI-main-group').html(this.graph.impekts[0].maingroup)
+        titleDiv.append('div').attr('id', 'graph-UI-sub-group').html(this.graph.impekts[0].subgroup)
+        titleDiv.append('div').attr('id', 'graph-UI-unit').html(this.graph.impekts[0].unit)
+        titleDiv.append('div').attr('id', 'graph-UI-uid').html(this.graph.impekts[0].uid.toString())
+        titleDiv.append('div').attr('id', 'graph-UI-id').html(this.graph.impekts[0].impact_id.toString())
+    }                 // Add title edits
 
-
-    // Advanced table edits
+    
     removeLink(row) {
         let span = row.select('td span');
         let short_code_name = span.attr('data-name')
         let type = span.attr('data-type')
-
-
-
 
         // remove from table
         row.remove()
 
         // remove including tag
         d3.select('a[href="#resource_' + short_code_name + '"').remove()
-
-
+        
         // Remove from data
-        if (type == graph.typeOfLink.subimpekt.toString()) { this.removeSubImpekt(short_code_name) }
-        if (type == graph.typeOfLink.variable.toString()) { this.removeVariable(short_code_name) }
-
+        if (type == graph.typeOfLink.variable.toString()) {
+            this.graph.variables = this.graph.variables.filter((vari) => {
+                if (vari.short_code_name !== short_code_name) return vari
+            })
+        }
+        this.graph.impekts[0].links = this.graph.impekts[0].links.filter((link) => { if (link.link_alias !== short_code_name) return link })
+        this.graph.impekts[0].edited = true;
 
         // update once to get errors
         this.elUI.selectAll('hr[data-alias="' + short_code_name + '"]').style('background', '#ff9595')
         this.graph.updateFormula(this.graph.impekts[0].formula)
-    }
-    removeSubImpekt(short_code_name) {
-        // Remove from data
-        /*this.graph.impekts[0].subimpact = this.graph.impekts[0].subimpact.filter((subimpekt) => {
-            if (subimpekt.short_code_name !== short_code_name) return subimpekt
-        })*/
-    }
-    removeVariable(short_code_name) {
+    }                 // Advanced table edits
 
-        // Delete variable controller
-        d3.selectAll('.graph-buttons-group>div[title="' + short_code_name + '"]').remove()
 
-        // Remove from data
-        /*this.graph.impekts[0].impactvariables = this.graph.impekts[0].impactvariables.filter((vari) => {
-            if (vari.short_code_name !== short_code_name) return vari
-        })*/
-        // ToDo fix this double, 
-        // Remove from variables
-        /*this.graph.impekts[0].variables = this.graph.impekts[0].variables.filter((vari) => {
-            if (vari.short_code_name !== short_code_name) return vari
-        })*/
-        this.graph.variables = this.graph.variables.filter((vari) => {
-            if (vari.short_code_name !== short_code_name) return vari
-        })
-    }
-    buttonRemoveFormula(element) {
-        new confirmButton(d3.select(element), 'x', "UI-edit-delete", "delete", () => {
-            let k = parseInt(d3.select(element).attr('data-part'))
-            this.graph.impekts[0].formula = this.graph.impekts[0].formula.filter((part, i) => { if (i !== k) return part })
-            this.graph.updateFormula(this.graph.impekts[0].formula)
-            this.graph.update(true);
-            this.update();
-            this.startEdit()
-        })
-    }
+   
     buttonNewFormula() {
         //remove previous
         d3.select(".UI-edit-add-fomrula-part").remove()
@@ -266,24 +278,36 @@ class editUI extends UI {
             this.buttonNewFormula()
         })
         this.graph.impekts[0].formula.push({ technical: '', title: newTitle })
-    }
-    buttonNewLink(elTable) {
-        let addRow = elTable.append('tr').style('cursor', 'ititial').attr('class', "UI-edit-row")
-        addRow.append('td')
-        addRow.append('td').html('Add new item')
-        addRow.append('td')
-        addRow.append('td')
-        addRow.append('td').append('span').html('+').attr('class', "UI-edit-add")
-            .attr('title', "add")
-
-        addRow.on('click touch', (d, i, arr) => {
-            this.overlayerNewLink()
+    }               // Adds button to create new formula block
+    buttonRemoveFormula(element) {
+        new confirmButton(d3.select(element), 'x', "UI-edit-delete", "delete", () => {
+            let k = parseInt(d3.select(element).attr('data-part'))
+            this.graph.impekts[0].formula = this.graph.impekts[0].formula.filter((part, i) => { if (i !== k) return part })
+            this.graph.updateFormula(this.graph.impekts[0].formula)
+            this.graph.update(true);
+            this.update();
+            this.startEdit()
         })
     }
 
 
 
-    // // // Links  // // //
+    ///////////// Links /////////////
+    buttonNewLink(elTable) {
+        let addRow = elTable.append('tr').style('cursor', 'ititial').attr('class', "UI-edit-row")
+        addRow.append('td')
+        addRow.append('td')
+        addRow.append('td').html('+ Add new item')
+        addRow.append('td')
+        addRow.append('td')
+        addRow.append('td')
+        addRow.append('td')
+        addRow.append('td')
+
+        addRow.on('click touch', (d, i, arr) => {
+            this.overlayerNewLink()
+        })
+    }
     databaseRequestLinks(search: string, divSuggestions: d3.Selection<HTMLDivElement, {}, HTMLElement, any>, type: number) {
 
 
@@ -328,7 +352,7 @@ class editUI extends UI {
                     if (type == graph.typeOfLink.variable) {
                         item.on('click touch', () => {
 
-                            this.addNewVariable(link.var_id);
+                            this.addVariable(link.var_id);
                         })
                     }
 
@@ -350,90 +374,7 @@ class editUI extends UI {
         }
 
     }
-    overlayerNewVariableValidate(body, type) {
 
-        let newVariable = new variable
-
-        // Save inputs in a function
-        let appendToJson = (input) => {
-            let value = input.value
-            let key = input.getAttribute('name')
-            newVariable[key] = value
-        }
-        // Loop trough Iputs
-        body.selectAll('input').each((d, i, arr) => { appendToJson(arr[i]) })
-        this.overlay.generalTab.selectAll('input').each((d, i, arr) => { appendToJson(arr[i]) })
-
-        // Set defaults
-        newVariable.type = type
-        newVariable.link_uid = -999
-
-        // Add to UI
-        this.VariabletoUI(newVariable,
-            {
-
-                // link_linked_id: undefined,
-
-                link_amount: 1,
-
-                link_descr: 'Why did you add this variables to this impekt',
-                link_changeable: 1,
-                link_advanced: 1,
-                link_version: 0,
-                link_linked_id: 'given_by_db',
-                link_alias: newVariable.short_code_name,
-
-                link_uid: newVariable.link_uid
-
-            }
-        )
-
-    }
-    overlayerNewVariable() {
-
-        this.overlay.show(true)
-        this.overlay.setTitle('Create Variable')
-
-        // Sliders
-        let sliderBody = this.overlay.newTab('Slider', graph.typeOfVariable.slider)
-        sliderBody.append('label').style('flex', '1 1 30%').html('Min').append('input').attr('name', 'min').attr('value', 'TESTvalue1')
-        sliderBody.append('label').style('flex', '1 1 30%').html('Max').append('input').attr('name', 'max').attr('value', 'TESTvalue1')
-        sliderBody.append('label').style('flex', '1 1 30%').html('Default').append('input').attr('name', 'value1').attr('value', 'TESTvalue1')
-        //sliderBody.append('span').style('flex', '0 0 100%').html('Save').attr('name', 'value1').attr('value', 'TESTvalue1')
-        new confirmButton(sliderBody.append('div').style('flex', '1 1 100%'), 'Save', 'overlay-button', 'TilteSave data in Database', () => {
-            this.overlayerNewVariableValidate(sliderBody, graph.typeOfVariable.slider)
-        })
-
-
-        // < span class="overlay-button" title = "Save data in Database" style = "flex:0 0 100%;" > Save < /span>
-
-        // SliderBody
-        let toggleBody = this.overlay.newTab('Toggle', graph.typeOfVariable.toggle)
-        toggleBody.append('label').style('flex', '1 1 50%').html('Alias 1').append('input').attr('name', 'alias1').attr('value', 'TESTvalue1')
-        toggleBody.append('label').style('flex', '1 1 50%').html('Value 1').append('input').attr('name', 'value1').attr('value', 'TESTvalue1')
-        toggleBody.append('label').style('flex', '1 1 50%').html('Alias 2').append('input').attr('name', 'alias2').attr('value', 'TESTvalue1')
-        toggleBody.append('label').style('flex', '1 1 50%').html('Value 2').append('input').attr('name', 'value2').attr('value', 'TESTvalue1')
-        new confirmButton(toggleBody.append('div').style('flex', '1 1 100%'), 'Save', 'overlay-button', 'TilteSave data in Database', () => {
-            this.overlayerNewVariableValidate(toggleBody, graph.typeOfVariable.toggle)
-        })
-        // Pick List
-        let pickBody = this.overlay.newTab('PickList', graph.typeOfVariable.picklist)
-        pickBody.append('label').style('flex', '1 1 50%').html('Aliases').append('input').attr('name', 'alias1').attr('value', 'TESTvalue1')
-        pickBody.append('label').style('flex', '1 1 50%').html('Values').append('input').attr('name', 'value1').attr('value', 'TESTvalue1')
-        new confirmButton(pickBody.append('div').style('flex', '1 1 100%'), 'Save', 'overlay-button', 'TilteSave data in Database', () => {
-            this.overlayerNewVariableValidate(pickBody, graph.typeOfVariable.picklist)
-        })
-
-        // General Inputs
-        this.overlay.generalTab.append('label').style('flex', '0 1 100%').append('input').attr('name', 'title').attr('value', 'TESTvalue1')
-        this.overlay.generalTab.append('label').append('input').attr('name', 'sub_title').attr('value', 'TESTvalue1')
-        this.overlay.generalTab.append('label').append('input').attr('name', 'long_code_name').attr('value', 'TESTvalue1')
-        this.overlay.generalTab.append('label').append('input').attr('name', 'short_code_name').attr('value', 'TESTvalue1')
-        this.overlay.generalTab.append('label').append('input').attr('name', 'unit').attr('value', 'TESTvalue1')
-        this.overlay.generalTab.append('label').style('flex', '0 1 100%').append('textarea').attr('name', 'unit').html('TESTvalue1')
-    }
-
-    // ADd new link
     overlayerNewLink() {
 
         this.overlay.show(true)
@@ -444,7 +385,7 @@ class editUI extends UI {
         let variableBody = this.overlay.newTab('Variable', graph.typeOfLink.variable)
         let variableInput = variableBody.append('input').attr('placeholder', 'Start typing...').style('flex', '1 1 100%')
 
-        variableBody.append('span').attr('class', 'overlay-button').style('flex', '0 0 auto').html('Create new').on('click touch', () => { this.overlayerNewVariable() })
+        variableBody.append('span').attr('class', 'overlay-button').style('flex', '0 0 auto').html('Create new').on('click touch', () => { this.overlayerCreateNewVariable() })
         let variableResults = variableBody.append('div').html('Start typing...').style('flex', '1 1 100%')
         variableInput.on('keyup paste copy cut', (d, i, arr) => {
             let value: string = arr[i].value
@@ -475,50 +416,160 @@ class editUI extends UI {
                 }, 400);
             }
         })
-    }
-    addNewVariable(var_id) {
+    }                               // Show overlay: Add new link
+    overlayerCreateNewVariable() {
 
-        // Get variable
+        this.overlay.show(true)
+        this.overlay.setTitle('Create Variable')
+
+        // Sliders
+        let sliderBody = this.overlay.newTab('Slider', graph.typeOfVariable.slider)
+        sliderBody.append('label').style('flex', '1 1 30%').html('Min').append('input').attr('name', 'min').attr('value', 'TESTvalue1')
+        sliderBody.append('label').style('flex', '1 1 30%').html('Max').append('input').attr('name', 'max').attr('value', 'TESTvalue1')
+        sliderBody.append('label').style('flex', '1 1 30%').html('Default').append('input').attr('name', 'value1').attr('value', 'TESTvalue1')
+        //sliderBody.append('span').style('flex', '0 0 100%').html('Save').attr('name', 'value1').attr('value', 'TESTvalue1')
+        new confirmButton(sliderBody.append('div').style('flex', '1 1 100%'), 'Save', 'overlay-button', 'TilteSave data in Database', () => {
+            this.overlayerCreateNewVariableValidate(sliderBody, graph.typeOfVariable.slider)
+        })
+
+
+        // < span class="overlay-button" title = "Save data in Database" style = "flex:0 0 100%;" > Save < /span>
+
+        // SliderBody
+        let toggleBody = this.overlay.newTab('Toggle', graph.typeOfVariable.toggle)
+        toggleBody.append('label').style('flex', '1 1 50%').html('Alias 1').append('input').attr('name', 'alias1').attr('value', 'TESTvalue1')
+        toggleBody.append('label').style('flex', '1 1 50%').html('Value 1').append('input').attr('name', 'value1').attr('value', 'TESTvalue1')
+        toggleBody.append('label').style('flex', '1 1 50%').html('Alias 2').append('input').attr('name', 'alias2').attr('value', 'TESTvalue1')
+        toggleBody.append('label').style('flex', '1 1 50%').html('Value 2').append('input').attr('name', 'value2').attr('value', 'TESTvalue1')
+        new confirmButton(toggleBody.append('div').style('flex', '1 1 100%'), 'Save', 'overlay-button', 'TilteSave data in Database', () => {
+            this.overlayerCreateNewVariableValidate(toggleBody, graph.typeOfVariable.toggle)
+        })
+        // Pick List
+        let pickBody = this.overlay.newTab('PickList', graph.typeOfVariable.picklist)
+        pickBody.append('label').style('flex', '1 1 50%').html('Aliases').append('input').attr('name', 'alias1').attr('value', 'TESTvalue1')
+        pickBody.append('label').style('flex', '1 1 50%').html('Values').append('input').attr('name', 'value1').attr('value', 'TESTvalue1')
+        new confirmButton(pickBody.append('div').style('flex', '1 1 100%'), 'Save', 'overlay-button', 'TilteSave data in Database', () => {
+            this.overlayerCreateNewVariableValidate(pickBody, graph.typeOfVariable.picklist)
+        })
+
+        // General Inputs
+        this.overlay.generalTab.append('label').style('flex', '0 1 100%').append('input').attr('name', 'title').attr('value', 'TESTvalue1')
+        this.overlay.generalTab.append('label').append('input').attr('name', 'sub_title').attr('value', 'TESTvalue1')
+        this.overlay.generalTab.append('label').append('input').attr('name', 'long_code_name').attr('value', 'TESTvalue1')
+        this.overlay.generalTab.append('label').append('input').attr('name', 'short_code_name').attr('value', 'TESTvalue1')
+        this.overlay.generalTab.append('label').append('input').attr('name', 'unit').attr('value', 'TESTvalue1')
+        this.overlay.generalTab.append('label').style('flex', '0 1 100%').append('textarea').attr('name', 'unit').html('TESTvalue1')
+    }                     // Create new variable
+    overlayerCreateNewVariableValidate(body, type) {
+
+        let newVariable = new variable
+
+        // Save inputs in a function
+        let appendToJson = (input) => {
+            let value = input.value
+            let key = input.getAttribute('name')
+            newVariable[key] = value
+        }
+        // Loop trough Iputs
+        body.selectAll('input').each((d, i, arr) => { appendToJson(arr[i]) })
+        this.overlay.generalTab.selectAll('input').each((d, i, arr) => { appendToJson(arr[i]) })
+
+        // Set defaults
+        newVariable.type = type
+        //newVariable.link_uid = -999
+        newVariable.var_id = new Date().valueOf()+10;
+        // Add to UI
+        this.newVariableToLink(newVariable,
+            {
+
+                link_linked_id: newVariable.var_id,
+                link_uid: new Date().valueOf(),
+
+
+                link_amount: 1,
+                link_descr: 'Why did you add this variables to this impekt?',
+                link_changeable: 1,
+                link_advanced: 1,
+                link_version: 0,
+                short_code_name: newVariable.short_code_name,
+                link_type: graph.typeOfLink.variable
+            }
+        )
+
+    }   // When saving new variable
+    addVariable(var_id) {
+        // Create first variable -> UID needed in Link
         let newVariable = new variable()
-
         newVariable.fromID(var_id).then(() => {
-
-            this.VariabletoUI(newVariable, {})
+            // Variable to Link
+            this.newVariableToLink(newVariable, {
+                link_linked_id: newVariable.var_id,
+                link_uid: new Date().valueOf(),
+                link_amount: 1,
+                link_descr: 'Why did you add this variables to this impekt?',
+                link_changeable: 1,
+                link_advanced: 1,
+                link_version: 0,
+                short_code_name: newVariable.short_code_name,
+                link_type: graph.typeOfLink.variable
+            }
+            )
         });
-    }
+    }                              // After adding (old or new) variable
+    newVariableToLink(newVariable, linkJson) {
+        // Triggered from Added vairable OR New Variable
+        // Variable created, now link
 
 
-    VariabletoUI(newVariable, linkJson) {
-        newVariable.elControllers = this.graph.elControllers;
-        newVariable.elTable = this.elTable;
-        // Defaults
-        newVariable.value = 1
 
-        // Add to data
-        this.graph.variables.push(newVariable);
+        this.graph.impekts[0].edited = true;
 
-        // Update UI
-        newVariable.addToUI(this.graph.elControllers, () => {
-            this.graph.update();
-            this.makeTableRowDraggable();
-        });
+        // Create Link
         let newLink = new link(linkJson);
-        newLink.variable = newVariable;
-        console.log(newLink)
-        this.graph.impekts[0].links.push(newLink);
-        this.overlay.show(false);
-        this.makeTableRowDraggable()
-        this.startEdit();
-    }
 
+        // Add variable to Link
+        newVariable.value = 1;
+        //newVariable.uid = newVariable.var_id+1;
+        newVariable.link_uid = newLink.link_uid;
+        newLink.variable = newVariable;
+
+        // Add link to data
+        this.graph.impekts[0].links.push(newLink);
+        this.graph.variables.push(newLink.variable);
+
+
+
+        // Remove overlay
+        this.overlay.show(false);
+
+        
+
+        this.makeTableRowDraggable();
+        this.graph.update();
+        this.startEdit();
+    }         // Add new variable to data and UI
     addNewSubImpekt(impekt_uid) {
 
         console.log('add sub impekt_id', impekt_uid)
 
         // Get data
         this.getNewSubImpekt(impekt_uid).then((subimpekt) => {
+            let linkJSON = {
+                ...{
+                    link_linked_id: subimpekt.var_id,
+                    link_uid: new Date().valueOf(),
+                    link_amount: 1,
+                    link_descr: 'Why did you add this variables to this impekt?',
+                    link_version: 0,
+                    short_code_name: subimpekt.short_code_name,
+                    link_type: graph.typeOfLink.subimpekt
+                }, ...subimpekt
+            }
 
-
+            let newLink = new link(linkJSON)
+            newLink.subimpact = subimpekt
+            let newUILink = new UIlink(this, newLink)
+            console.log(newUILink)
             // Add to data
             //this.graph.impekts[0].subimpact.push(subimpekt);
 
@@ -566,28 +617,17 @@ class editUI extends UI {
     }
 
 
-    // Add title edits
-    addExtraCodes() {
-        d3.selectAll('#graph-UI-extras').remove()
-        let titleDiv = d3.select('.graph-title').append('div').attr('id', 'graph-UI-extras')
-        titleDiv.append('div').attr('id', 'graph-UI-long-code').html(this.graph.impekts[0].long_code_name)
-        titleDiv.append('div').attr('id', 'graph-UI-short-code').html(this.graph.impekts[0].short_code_name)
-        titleDiv.append('div').attr('id', 'graph-UI-main-group').html(this.graph.impekts[0].maingroup)
-        titleDiv.append('div').attr('id', 'graph-UI-sub-group').html(this.graph.impekts[0].subgroup)
-        titleDiv.append('div').attr('id', 'graph-UI-unit').html(this.graph.impekts[0].unit)
-        titleDiv.append('div').attr('id', 'graph-UI-uid').html(this.graph.impekts[0].uid.toString())
-        titleDiv.append('div').attr('id', 'graph-UI-id').html(this.graph.impekts[0].impact_id.toString())
-    }
 
-
-
-    // Edit Text elements
-    // Adds a button, and place the other text in a span
+    ///////////// Edit action /////////////
     buttonEdit(item, fieldname: string, type, callback) {
 
+        let header = (
+            type === editUI.editDivType.warning_oneline_desc ||
+            type === editUI.editDivType.oneline_desc ||
+            type === editUI.editDivType.multiline_desc
+        ) ? "<span class='edit-container-fieldname'>" + fieldname + ": </span>" : '';
 
-
-        if (item.select('.edit-container').empty()) item.html("<span class='edit-container-fieldname'>" + fieldname + ": </span><span class='edit-container'>" + item.html() + "</span>")
+        if (item.select('.edit-container').empty()) item.html(header+"<span class='edit-container'>" + item.html() + "</span>")
 
         if (type != editUI.editDivType.notAllowed) {
 
@@ -599,10 +639,7 @@ class editUI extends UI {
         }
 
 
-    }
-
-
-    // When clicked on edit, create a input and save button. Edit button is hidden
+    }   // Adds a button, and place the other text in a span
     goEditer(el: HTMLElement, callback) {
 
         let parentNode = d3.select(<HTMLElement>el.parentNode)
@@ -611,25 +648,25 @@ class editUI extends UI {
         let oldText = container.html()
 
 
-        if (type == editUI.editDivType.warning_oneline.toString()) {
+        if (type == editUI.editDivType.warning_oneline_desc.toString() ||
+            type == editUI.editDivType.warning_oneline.toString()
+            ) {
             this.graph.tooltip.show('this', 1, 1)
             type = editUI.editDivType.oneline.toString()
             parentNode.select('.UI-edit-warning').remove()
-            parentNode.append('span').attr('class', 'UI-edit-warning').html('WARNING: continue only if you know the consequences')
+            parentNode.append('div').attr('class', 'UI-edit-warning').html('WARNING: continue only if you know the consequences')
         }
-
-        // If oneline, replace with input 
-        if (type == editUI.editDivType.oneline.toString()) {
+        if (type == editUI.editDivType.oneline_desc.toString() ||
+            type == editUI.editDivType.oneline.toString()
+            ) {
             container.html('<input />')
             parentNode.select('input').property('focus', true).property('value', oldText);
         }
-
-        // If oneline, replace with input 
-        if (type == editUI.editDivType.multiline.toString()) {
+        if (type == editUI.editDivType.multiline_desc.toString() ||
+            type == editUI.editDivType.multiline.toString()) {
             container.html('<textarea></textarea >')
             parentNode.select('textarea').property('focus', true).property('value', oldText.split('<br>').join('\n'));
         }
-
 
 
         el.style.display = 'none';
@@ -645,21 +682,22 @@ class editUI extends UI {
         //if (type == 'multiline') item.html('<textarea></textarea >').children('textarea').focus().html(inner.split('<br>').join('\n'))
 
 
-    }
+    }                   // When clicked on edit, create a input and save button. Edit button is hidden
     closeEditer(el: HTMLElement, callback) {
         let parentNode = d3.select(<HTMLElement>el.parentNode)
         let newText = 'error'
         let type: string = el.getAttribute('data-type')
 
-
-        // If oneline
-        if (type == editUI.editDivType.oneline.toString()) {
+        if (type == editUI.editDivType.warning_oneline_desc.toString() ||
+            type == editUI.editDivType.warning_oneline.toString()||
+            type == editUI.editDivType.oneline.toString() ||
+            type == editUI.editDivType.oneline_desc.toString()) {
             newText = parentNode.select('.edit-container input').property('value')
             parentNode.select('.edit-container').html(newText);
         }
-
-        // If oneline
-        if (type == editUI.editDivType.multiline.toString()) {
+        
+        if (type == editUI.editDivType.multiline_desc.toString() ||
+            type == editUI.editDivType.multiline.toString()) {
             newText = parentNode.select('.edit-container textarea').property('value')
             parentNode.select('.edit-container').html(newText.split('\n').join('<br>'));
         }
@@ -669,11 +707,11 @@ class editUI extends UI {
         parentNode.classed('UI-editor', false)
         parentNode.select('.UI-edit').style('display', '')
         callback(newText)
-    }// When saved, restore input and edit button
+    }                // When saved, restore input and edit button
 
 
 
-    // Save data into database
+    ///////////// Save /////////////
     addSaveBlock() {
         // Add main save block
         let saveDiv = d3.select('.graph-UI-group').insert('div', ':first-child').attr("class", "UI-edit-div")
@@ -812,6 +850,9 @@ module editUI {
         oneline,
         multiline,
         warning_oneline,
+        oneline_desc,
+        multiline_desc,
+        warning_oneline_desc,
         notAllowed
     }
 
@@ -833,20 +874,17 @@ window.onload = () => {
         }
     }
 
+
     // Create graph
     let newGraph = new graph();
-    // Create interface with 
     x = new editUI(newGraph);
     newGraph.buildGraph().then(() => {
         x.update();
         x.toggleAdvanced(true);
         x.startEdit();
-        //console.log(x.stackMax)
-        //console.log(x.stackMax)
-        //y.pushFormula();
-        // window.scrollTo(0, 800);
+        window.scrollTo(0, 800);
     });
 
-   // x.overlayerNewLink();
+    // x.overlayerNewLink();
 
 };

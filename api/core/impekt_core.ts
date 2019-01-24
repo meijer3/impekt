@@ -18,7 +18,7 @@
 
 
 ///////////// Others /////////////
-function PrettyNumber(num): string {
+function PrettyNumber(num, number?: boolean): string|number {
     let significance: number = 3
     let strlen: number
     let clean: number
@@ -31,20 +31,21 @@ function PrettyNumber(num): string {
         strlen = (num.toFixed(0) + '').length
         clean = Math.pow(10, strlen - significance)
         RNum = parseInt((num / clean).toFixed(0)) * clean
-        return RNum.toLocaleString('fr-EG');
+        return (number) ? RNum : RNum.toLocaleString('fr-EG');
     }
     else if (num > 1) { // between 1 and 10
         strlen = (num.toFixed(0) + '').length
         clean = Math.pow(10, strlen - significance + 1) 	// -1 
         RNum = parseInt((num / clean).toFixed(1)) * clean			// +1
 
-        return RNum.toLocaleString('fr-EG');
+        return (number) ? RNum: RNum.toLocaleString('fr-EG');
     }
     else { // between 0 and 1 (starting with 0.)
         num = num.toFixed(100)
         clean = Math.abs(Math.floor(Math.log10(num)))
         RNum = (num + '').substring(0, clean + significance + 1)
-        return RNum.substring(0, 4) + " " + RNum.substring(4).replace(/(.{3})/g, "$1");
+
+        return (number) ? RNum :  RNum.substring(0, 4) + " " + RNum.substring(4).replace(/(.{3})/g, "$1");
     }
 
 }
@@ -134,6 +135,8 @@ interface calculatedData {
     title: string
     data: number[]
 }
+
+
 
 
 ///////////// Variables /////////////
@@ -263,9 +266,10 @@ class sliderVariable {
     elUpdate: d3.Selection<HTMLElement, any, HTMLElement, any>[]
 
 
-    constructor(min, max, value, alias, unit, parentNode) {
+    constructor(min, max, step, value, alias, unit, parentNode) {
         this.min = min
         this.max = max
+        this.step = step
         this.value = value
         this.alias = alias
         this.unit = unit
@@ -277,7 +281,9 @@ class sliderVariable {
 
     private createHTML() {
 
-        this.step = (this.max - this.min) / 20
+        //this.step = (this.max - this.min) / 40 // 30 steps in a slider
+        //this.step = <number>PrettyNumber(this.step, true)
+
         this.id = 'variable_' + this.alias
 
         this.el = this.parentNode.append('div').attr('class', 'graph-buttons-slider')
@@ -312,7 +318,7 @@ class sliderVariable {
 
             if (this.elUpdate) {
                 this.elUpdate.map((locations) => {
-                    locations.html((<HTMLInputElement>this.el.select('input').node()).value )
+                    locations.html((<HTMLInputElement>this.el.select('input').node()).value)
                 })
             }
             this.el.select('a').html((<HTMLInputElement>this.el.select('input').node()).value + ' ' + this.el.select('input').attr('data-unit'))
@@ -338,19 +344,7 @@ class sliderVariable {
 
 }
 class variable {
-
-
-
     // Elements for this link only
-
-    /*link_amount: number
-    link_advanced: boolean
-    link_changeable: boolean
-    link_date: string
-    link_descr: string
-    link_linked_id: number
-    link_type: graph.typeOfLink
-    link_version: number*/
     link_uid: number
     value: number
 
@@ -374,6 +368,7 @@ class variable {
     // Sliders
     max: number
     min: number
+    step: number
 
     // Toggle
     value1: any
@@ -399,9 +394,8 @@ class variable {
         this.link_linked_id = json.link_linked_id
         this.link_type = json.link_type
         this.link_version = json.link_version*/
-        this.link_uid = json.link_uid
+        this.link_uid = json.link_uid // For finding the right formula parts! (can be changed to ALIAS!)
 
-        this.value = 123
         // Variable standards
         this.long_code_name = json.long_code_name
         this.short_code_name = json.short_code_name
@@ -418,12 +412,15 @@ class variable {
         // Sliders
         this.max = json.max
         this.min = json.min
+        this.step = json.step
 
         // Toggle
         this.value1 = json.value1
         this.alias1 = json.alias1
         this.value2 = json.value2
         this.alias2 = json.alias2
+
+
         return this
     }
     fromID(var_id): Promise<any> {
@@ -437,10 +434,7 @@ class variable {
                     var jsonData
                     try {
                         jsonData = JSON.parse(xhr.responseText)[0];
-
-
                         resolve(this.fromJSON(jsonData))
-
                     } catch (e) {
                         console.error(e);
                         reject(xhr.responseText);
@@ -449,11 +443,7 @@ class variable {
 
                 }
             }
-
             xhr.send('x=getVariableByID&y=' + var_id);
-
-
-
         })
 
 
@@ -461,8 +451,6 @@ class variable {
 
     }
 
-    // Called from view
-   
 
 
     // Called from addToUi or addToTable
@@ -478,7 +466,7 @@ class variable {
     // Add classes and update
     addSlider(elControllers, callback) {
 
-        let newslider = new sliderVariable(this.min, this.max, this.value, this.short_code_name, this.unit, elControllers)
+        let newslider = new sliderVariable(this.min, this.max,this.step, this.value, this.short_code_name, this.unit, elControllers)
         newslider.elUpdate = this.elUpdate;
         // on change do this
         newslider.activate((amount) => {
@@ -661,14 +649,14 @@ class graph {
 
     // Add Default buttons
     addButtons() {
-
+        /*
         let internalSimpleAdvanced = new variable()
         internalSimpleAdvanced.elControllers = this.elControllers
         internalSimpleAdvanced.internalSimpleAdvanced();
         internalSimpleAdvanced.type = graph.typeOfVariable.internalSimpleAdvanced
         internalSimpleAdvanced.addToggle(this.elControllers, (mode) => {
             this.changeMode(mode)
-        });
+        });*/
 
         let internalStackCompare = new variable()
         internalStackCompare.elControllers = this.elControllers
@@ -1268,7 +1256,12 @@ class impekt implements Iimpekt {
 
 
             // include links
-
+            if (Array.isArray(json.subimpact)) {
+                json.subimpact.map((e, i) => {
+                    let newLink = new link(e)
+                    this.links.push(newLink)
+                })
+            }
             if (Array.isArray(json.impactvariables)) {
                 json.impactvariables.map(e => {
                     let newLink: link = new link(e)
@@ -1277,13 +1270,8 @@ class impekt implements Iimpekt {
                 })
             }
 
-            if (Array.isArray(json.subimpact)) {
-                json.subimpact.map((e, i) => {
-                    let newLink = new link(e)
-                    this.links.push(newLink)
-                })
-            }
-            console.log('Links:', this.links)
+
+            //console.log('Links:', this.links)
             return this;
         }
         catch (e) {
@@ -1325,8 +1313,11 @@ class impekt implements Iimpekt {
                             console.error(xhr.responseText)
                             return reject('Internal Error')
                         }
+                        else if (xhr.status == 0) {
+                            return reject('Highlikely SSL error');
+                        }
 
-                        else  {
+                        else {
                             console.error(xhr)
                             return reject('Wrong header: ' + xhr.status)
                         }
@@ -1336,7 +1327,7 @@ class impekt implements Iimpekt {
                     else {
                         if (xhr.status == 0) { // API Down... :(
                             return reject('Service down, status 0')
-                        } 
+                        }
 
                     }
                 }
@@ -1387,12 +1378,13 @@ class impekt implements Iimpekt {
                     }
                     // Error		
                     else {
-                        console.error('getFormula Unknown Tag in Formula: ', x, this.links.map(e => e.link_uid))
+                        if (Number.isNaN(x)) { x = evalValueParts[i] }
+                        console.error('Tag', x, ' unknown in formula: ', formula, 'available codes: ', this.links.map(e => e.link_uid))
                         //console.error('codeParts', codeParts[i])
                         //console.error('short_code_name', this.short_code_name)
                         //console.error('subimpact', this.subimpact.map(e => e.short_code_name))
                         //console.error('variables', this.variables.map(e => e.short_code_name))
-                        callback('getFormula Unknown Tag in Formula: ' + x);
+                        callback('There is a unclear part in the formula: ' + x);
                     }
 
 
@@ -1536,7 +1528,7 @@ class link {
     link_alias: string;
     subimpact: subimpekt;
     variable: variable;
-    resource: resource;
+    edited: boolean;
 
     constructor(json) {
         this.link_uid = json.link_uid;
@@ -1550,7 +1542,7 @@ class link {
         this.link_descr = json.link_descr;
 
         if (this.link_type == graph.typeOfLink.subimpekt) {
-            this.subimpact = new subimpekt(json.uid)
+            this.subimpact = new subimpekt(json.link_linked_id)
             this.subimpact.bindData(json);
             this.link_alias = json.short_code_name;
         }
@@ -1562,7 +1554,7 @@ class link {
             if (this.link_changeable) this.variable.changeable = this.link_changeable;
             this.link_alias = json.short_code_name;
         }
-            // If newly created
+        // If newly created
         else {
             this.link_alias = json.link_alias;
         }
@@ -1572,69 +1564,18 @@ class link {
             return this.subimpact.getSubImpektData(field);
         }
         if (this.link_type == graph.typeOfLink.variable) {
-            return given_variable.filter((e) => { return e.link_uid == this.link_uid })[0].value
+            let oneVar = given_variable.filter((variable) => { return variable.link_uid == this.link_uid })
+            if (oneVar.length > 0) {
+                return oneVar[0].value
+            } else {
+                console.error('ERROR', given_variable, oneVar.length, this.link_uid)
+            }
+
         }
     };
     getAlias() {
         return this.link_alias
     };
-
-
-
-    addToResource(elResource, elIncl) {
-        this.resource = new resource()
-        this.resource.create(this, elResource, elIncl)
-    }
-    addToTable(elTable,elControllers,callback) {
-        if (this.link_type == graph.typeOfLink.subimpekt) {
-            let subimpekt = this.subimpact;
-            elTable.append('tr')
-                .attr('class', 'graph-UI-table-tr graph-UI-table-impact')
-                .attr('title', 'drag me into the formula')
-                .html(`
-                    <td class="graph-UI-info-copy"><span data-type="`+ graph.typeOfLink.subimpekt + `" data-name="` + subimpekt.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + subimpekt.short_code_name + `" data-value="` + this.link_uid + `">'>` + subimpekt.short_code_name + `</span></td>
-                    <td>` + subimpekt.title + ` (` + subimpekt.short_code_name + `)</td>
-                    <td colspan='2' style='text-align:center;' class='vari_` + subimpekt.short_code_name + `'><a href='#id_` + subimpekt.short_code_name + `' title='More information'>Fixed</a></td>
-                    <td></td>
-                `)
-        }
-        if (this.link_type == graph.typeOfLink.variable) {
-            // Add variables to table
-            let row = elTable.append('tr')
-                .attr('class', 'graph-UI-table-tr graph-UI-table-variable')
-                .attr('title', 'drag me into the formula')
-
-            // Add cells
-            row.append('td')
-                .attr('class', 'graph-UI-info-copy')
-                .html(`<span data-type="` + this.variable.type + `" data-name="` + this.variable.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + this.variable.short_code_name + `" data-value="` + this.link_uid + `">'>` + this.variable.short_code_name + `</span>`)
-
-            row.append('td')
-                .html(this.variable.title + `(` + this.variable.short_code_name + `)`)
-
-            let update = row.append('td')
-                .style('text-align', 'right')
-                .style('padding-right', '5px')
-                .html(this.variable.value.toString())
-            // Set in the update Array for onchange events
-            this.variable.elUpdate.push(update);
-
-            row.append('td')
-                .html(this.variable.unit)
-
-
-            // Add controlers
-            let location
-            if (this.link_advanced) {
-                location = row.append('td')
-            } else {
-                location = elControllers
-            }
-            this.variable.addConrollers(location, (subcallback) => { callback(subcallback); }) // callback = values on change
-        }
-    }
-
-
 
 }
 

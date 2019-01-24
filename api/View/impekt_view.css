@@ -60,11 +60,15 @@ article p {
     text-align: center;
     padding: 10px 0 10px 0px;
 }
+#graph-UI-title-sub {
+    font-size: 70%;
+    opacity: 0.8;
+}
 
 .graph-UI-resource {
     text-align: center;
     border-top: 1px solid #bbb;
-    margin-top: 50px;
+    margin-top: 120px;
     padding-top: 30px;
 }
 
@@ -593,8 +597,8 @@ footer {
     color: rgba(0,0,0,0.7);
 }
 
-.graph-UI-table-tr:hover > td:nth-child(2),
-.graph-UI-table-tr:focus > td:nth-child(2) {
+.graph-UI-table-tr:hover > td:nth-child(3),
+.graph-UI-table-tr:focus > td:nth-child(3) {
     background: rgba(0,0,0,0.2);
     border: none;
     outline: none;
@@ -877,9 +881,12 @@ background: rgba(255,255,255,1);
     margin-top: 8px;
     transition: 1s;
 }
+.graph-expl-explanation,
+.graph-expl-exclusions {
+    text-align: left;
+}
 
 @media only screen and (min-width: 800px) {
-
     /* BASICS*/
     #page {
         margin: 60px auto 120px;
@@ -1033,14 +1040,66 @@ background: rgba(255,255,255,1);
 
 
 
+
+
 /******** Resource  **********/
 
 .resource {
     text-align: left;
-    margin: 20px 0;
-    padding: 20px 0px 30px 20px;
+    /*margin: 20px 0;
+    padding: 20px 0px 30px;*/
     font-size: 16px;
-    border-bottom: 1px solid #d2d2d2;
-    border-top: 1px solid #ababab;
-    border-radius: 7px;
+    /*     border-bottom: 1px solid #d2d2d2; */
+    /*     border-top: 1px solid #ababab; */
+    /*     border-radius: 7px; */
+    /* 	display:flex; */
+    /* 	flex-flow:row wrap; */
+    /* 	justify-content: flex-start; */
+    padding-top: 90px;
+    margin-top: 30px;
+}
+
+    .resource > span {
+        white-space: nowrap;
+    }
+
+.resource-title {
+    font-size: 120%;
+    margin-right: 25px;
+    margin-left: 40px;
+}
+
+.resource-sub_title {
+    float: left;
+    margin-left: 40px;
+}
+
+.resource-long_code_name,
+.resource-short_code_name,
+.resource-maingroup,
+.resource-subgroup {
+    margin-right: 10px;
+    opacity: 0.7;
+    float: right;
+}
+
+.resource-link_descr {
+    width: 100%;
+    clear: both;
+    padding: 10px 0 0;
+}
+a.anchor {
+    display: block;
+    position: relative;
+    top: -250px;
+    visibility: hidden;
+}
+
+
+.symbol {
+    height: 24px;
+    width: 7px;
+    background-size: contain;
+    display: inline-block;
+    background-repeat: no-repeat;
 }
