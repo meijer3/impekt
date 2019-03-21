@@ -39,12 +39,15 @@
   <ItemGroup>
     <Content Include="edit\impekt_edit.css" />
     <Content Include="edit\impekt_edit.html" />
+    <Content Include="HowMuchDemo\index.html" />
+    <Content Include="HowMuchDemo\tsconfig.json" />
     <Content Include="index.css">
       <SubType>Code</SubType>
     </Content>
     <Content Include="index.html">
       <SubType>Code</SubType>
     </Content>
+    <Content Include="klad.txt" />
     <Content Include="insight\insight.html">
       <SubType>Code</SubType>
     </Content>
@@ -54,6 +57,7 @@
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="edit\impekt_edit.ts" />
+    <TypeScriptCompile Include="HowMuchDemo\index.ts" />
     <TypeScriptCompile Include="insight\insight.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
@@ -73,6 +77,8 @@
     <Folder Include="core\" />
     <Folder Include="edit\" />
     <Folder Include="API\" />
+    <Folder Include="HowMuchDemo\" />
+    <Folder Include="img\" />
     <Folder Include="insight\" />
     <Folder Include="View\" />
   </ItemGroup>

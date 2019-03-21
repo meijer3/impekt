@@ -15,6 +15,81 @@ function parseURLParams(url) {
 function toggleMenu(x) {
     x.parentNode.parentNode.classList.toggle("header-menu-open");
 }
+class UIlink {
+    constructor(UI, link) {
+        this.UI = UI;
+        this.link = link;
+        this.addToTable();
+        this.addToResource();
+    }
+    addToTable() {
+        if (this.link.link_type == graph.typeOfLink.subimpekt) {
+            let subimpekt = this.link.subimpact;
+            let row = this.UI.elTable.append('tr')
+                .attr('class', 'graph-UI-table-tr graph-UI-table-impact')
+                .attr('title', 'drag me into the formula');
+            row.append('td')
+                .attr('class', 'graph-UI-info-copy')
+                .html(`<span data-type="` + graph.typeOfLink.subimpekt + `" data-name="` + subimpekt.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + subimpekt.short_code_name + `" data-value="` + this.link.link_uid + `">'>` + subimpekt.short_code_name + `</span>`);
+            row.append('td')
+                .style('background-image', "url('../img/symbol_impekt.png')")
+                .attr('class', 'symbol')
+                .style('margin', '9px 14px -9px 0px')
+                .attr('title', 'This is an impekt');
+            row.append('td')
+                .html(subimpekt.title + ` (` + subimpekt.short_code_name + `)`);
+            row.append('td').attr('colspan', '2')
+                .style('text-align', 'center')
+                .html('-');
+            row.append('td').append('a')
+                .attr('href', '#' + this.link.link_alias)
+                .attr('title', 'More information')
+                .html('Info');
+            row.append('td')
+                .style('text-align', 'center')
+                .html('-');
+        }
+        if (this.link.link_type == graph.typeOfLink.variable) {
+            let row = this.UI.elTable.append('tr')
+                .attr('class', 'graph-UI-table-tr graph-UI-table-variable')
+                .attr('title', 'drag me into the formula');
+            row.append('td')
+                .attr('class', 'graph-UI-info-copy')
+                .html(`<span data-type="` + this.link.variable.type + `" data-name="` + this.link.variable.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + this.link.variable.short_code_name + `" data-value="` + this.link.link_uid + `">'>` + this.link.variable.short_code_name + `</span>`);
+            row.append('td')
+                .style('background-image', "url('../img/symbol_variabele.png')")
+                .attr('class', 'symbol')
+                .style('margin', '9px 14px -9px 0px')
+                .attr('title', 'This is a variable');
+            row.append('td')
+                .html(this.link.variable.title + ` (` + this.link.variable.short_code_name + `)`);
+            let update = row.append('td')
+                .style('text-align', 'right')
+                .style('padding-right', '5px')
+                .style('width', '50px')
+                .html(this.link.variable.value.toString());
+            this.link.variable.elUpdate.push(update);
+            row.append('td')
+                .html(this.link.variable.unit);
+            row.append('td').append('a')
+                .attr('href', '#' + this.link.link_alias)
+                .attr('title', 'More information')
+                .html('Info');
+            if (this.link.link_advanced) {
+                this.link.variable.addConrollers(row.append('td'), () => { this.UI.graph.update(); });
+            }
+            else {
+                row.append('td').html('Change above')
+                    .style('text-align', 'center');
+                this.link.variable.addConrollers(this.UI.graph.elControllers, () => { this.UI.graph.update(); });
+            }
+        }
+    }
+    addToResource() {
+        this.resource = new resource();
+        this.resource.create(this.link, this.UI.elResource, this.UI.elIncl);
+    }
+}
 class resource {
     create(oneLink, elResource, elIncl) {
         this.elResource = elResource;
@@ -30,29 +105,51 @@ class resource {
             this.id = this.alias;
             this.addResourceImpekt(oneLink);
         }
+        this.elResourceDiv.append('div').attr('class', 'resource-link_descr').html(oneLink.link_descr);
         this.addToIcl();
-    }
-    remove() {
-        this.elResourceDiv.remove();
     }
     addResourceImpekt(oneLink) {
         this.elResourceDiv = this.elResource.append('div').attr('id', this.id).attr('class', 'resource resource-sub');
-        this.elResourceDiv.append('div').html(oneLink.subimpact.title);
-        this.elResourceDiv.append('div').html(oneLink.subimpact.sub_title);
-        this.elResourceDiv.append('div').html(oneLink.subimpact.long_code_name);
-        this.elResourceDiv.append('div').html(oneLink.subimpact.short_code_name);
-        this.elResourceDiv.append('div').html(oneLink.subimpact.maingroup);
-        this.elResourceDiv.append('div').html(oneLink.subimpact.subgroup);
-        this.elResourceDiv.append('div').html(oneLink.link_descr);
+        this.elResourceDiv.append('div')
+            .style('background-image', "url('../img/symbol_impekt.png')")
+            .attr('class', 'symbol')
+            .style('margin', '2px 0px -2px 0px')
+            .style('position', 'absolute')
+            .style('width', '30px')
+            .style('height', '20px')
+            .attr('title', 'This is an impekt');
+        this.elResourceDiv.append('div').attr('class', 'resource-title').html(oneLink.subimpact.title);
+        this.elResourceDiv.append('div').attr('class', 'resource-sub_title').html(oneLink.subimpact.sub_title);
+        this.elResourceDiv.append('span').attr('class', 'resource-long_code_name').html(oneLink.subimpact.long_code_name)
+            .attr('title', 'Long code name');
+        this.elResourceDiv.append('span').attr('class', 'resource-short_code_name').html(oneLink.subimpact.short_code_name)
+            .attr('title', 'Short code name');
+        this.elResourceDiv.append('span').attr('class', 'resource-maingroup').html(oneLink.subimpact.maingroup)
+            .attr('title', 'Group');
+        this.elResourceDiv.append('span').attr('class', 'resource-subgroup').html(oneLink.subimpact.subgroup)
+            .attr('title', 'Sub group');
     }
     addResourceVariable(oneLink) {
         this.elResourceDiv = this.elResource.append('div').attr('id', this.id).attr('class', 'resource resource-vari');
-        this.elResourceDiv.append('div').html(oneLink.variable.title);
-        this.elResourceDiv.append('div').html(oneLink.variable.sub_title);
-        this.elResourceDiv.append('div').html(oneLink.variable.long_code_name);
-        this.elResourceDiv.append('div').html(oneLink.variable.short_code_name);
-        this.elResourceDiv.append('div').html(oneLink.variable.descr);
-        this.elResourceDiv.append('div').html(oneLink.link_descr);
+        this.elResourceDiv.append('div')
+            .style('background-image', "url('../img/symbol_variabele.png')")
+            .attr('class', 'symbol')
+            .style('margin', '2px 0px -2px 0px')
+            .style('position', 'absolute')
+            .style('width', '30px')
+            .style('height', '20px')
+            .attr('title', 'This is a variable');
+        this.elResourceDiv.append('div').attr('class', 'resource-title').html(oneLink.variable.title);
+        this.elResourceDiv.append('div').attr('class', 'resource-sub_title').html(oneLink.variable.sub_title);
+        this.elResourceDiv.append('span').attr('class', 'resource-long_code_name').html(oneLink.variable.long_code_name)
+            .attr('title', 'Long code name');
+        this.elResourceDiv.append('span').attr('class', 'resource-short_code_name').html(oneLink.variable.short_code_name)
+            .attr('title', 'Short code name');
+        this.elResourceDiv.append('span').attr('class', 'resource-maingroup').html(oneLink.variable.short_code_name)
+            .attr('title', 'Group');
+    }
+    remove() {
+        this.elResourceDiv.remove();
     }
     addToIcl() {
         this.elInclLink = this.elIncl
@@ -68,8 +165,8 @@ class UI {
     constructor(graph) {
         this.title = '';
         this.subtitle = '';
-        this.resources = [];
         this.elAdvancedForm = [];
+        this.UIlinks = [];
         this.graph = graph;
         this.elUI = d3.select('#page').append('div').attr('class', 'graph-UI-group');
         this.elAdvanced = this.elUI.append('div').attr('class', 'graph-UI-advanced');
@@ -83,18 +180,15 @@ class UI {
     update() {
         this.setTitle();
         if (this.graph.AmountOfComparison == graph.AmountOfComparison.one) {
-            this.addOverviewFormula();
+            this.createNormalFormula();
             this.addAdvanced();
             this.addAdvancedFormula();
-            this.addImpektDesc();
+            this.addMoreInformation();
         }
         this.graph.impekts.map((impekt) => {
             impekt.links.map((link) => {
-                link.addToTable(this.elTable, this.graph.elControllers, () => {
-                    this.graph.update();
-                    this.makeTableRowDraggable();
-                });
-                link.addToResource(this.elResource, this.elIncl);
+                this.UIlinks.push(new UIlink(this, link));
+                this.makeTableRowDraggable();
             });
         });
     }
@@ -123,7 +217,7 @@ class UI {
         this.graph.updateFormula(newFormula);
         this.graph.update();
         if (this.graph.AmountOfComparison == graph.AmountOfComparison.one) {
-            this.addOverviewFormula();
+            this.createNormalFormula();
         }
         else {
             console.log('requested soft data update, but will do a hard one, data changed too much');
@@ -144,7 +238,27 @@ class UI {
         this.elTitle
             .html('<div id="graph-UI-title-main">' + this.title + '</div>' + subtitleString);
     }
-    addOverviewFormula() {
+    addAdvanced() {
+        this.elAdvanced.html('');
+        var block = this.elAdvanced.append('div').attr('id', 'graph-group-main');
+        let label = block.append('label')
+            .attr('class', 'settings-button');
+        label.append('input')
+            .attr('class', 'settings-toggle-main')
+            .attr('type', 'checkbox');
+        label.append('span');
+        label.append('span');
+        label.append('span');
+        label.append('span');
+        label.append('div');
+        label.on('change', () => { this.toggleAdvanced(); });
+        this.elInfo = block.append('div').attr('class', 'graph-UI-info').attr('id', 'graph-UI-info-main');
+        this.elInfo.style('max-height', '0px');
+        this.elTable = this.elInfo.append('table');
+        this.elTable.append('tr').html("<th><!--Drag--></th><th><!--Symbol--></th><th>Item</th><th colspan='2' style='text-align:center;padding: 5px 20px 5px 0;width:30px;'>Value</th><th></th><th></th>");
+        this.elAdvancedError = this.elInfo.append('div').attr('class', 'graph-UI-info-error');
+    }
+    createNormalFormula() {
         this.elFormula.html('');
         this.elFormula.append('h4').html('Formula');
         let singleImpekt = this.graph.impekts[0];
@@ -163,27 +277,17 @@ class UI {
             }
         }
     }
-    addAdvanced() {
-        this.elAdvanced.html('');
-        var block = this.elAdvanced.append('div').attr('id', 'graph-group-main');
-        let label = block.append('label')
-            .attr('class', 'settings-button');
-        label.append('input')
-            .attr('class', 'settings-toggle-main')
-            .attr('type', 'checkbox');
-        label.append('span');
-        label.append('span');
-        label.append('span');
-        label.append('span');
-        label.append('div');
-        label.on('change', () => { this.toggleAdvanced(); });
-        this.elInfo = block.append('div').attr('class', 'graph-UI-info').attr('id', 'graph-UI-info-main');
-        this.elInfo.style('max-height', '0px');
-        this.elTable = this.elInfo.append('table');
-        this.elTable.append('tr').html("<th></th><th>Forumla</th><th colspan='2' style='text-align:center;	padding: 5px 20px 5px 0;' >Value</th><th></th><th></th>");
-        this.graph.impekts[0].links.filter(e => e.subimpact).map((link) => {
-        });
-        this.elAdvancedError = this.elInfo.append('div').attr('class', 'graph-UI-info-error');
+    addMoreInformation() {
+        this.elImpekt.html('');
+        let singleImpekt = this.graph.impekts[0];
+        if (singleImpekt.descr) {
+            this.elImpekt.append('h4').html("Explanation");
+            this.elImpekt.append('p').html(singleImpekt.descr).attr('class', 'graph-expl-explanation');
+        }
+        if (singleImpekt.descr) {
+            this.elImpekt.append('h4').html("Known exclusions");
+            this.elImpekt.append('p').html(singleImpekt.excl).attr('class', 'graph-expl-exclusions');
+        }
     }
     addAdvancedFormula() {
         let singleImpekt = this.graph.impekts[0];
@@ -199,7 +303,6 @@ class UI {
         }
     }
     addAdvancedFormulaPart(k, title, formula) {
-        console.log(k, title, formula);
         let group = d3.select('.graph-UI-input-block')
             .append('div')
             .attr('class', 'graph-UI-input-group')
@@ -253,18 +356,6 @@ class UI {
             .style('height', '13px')
             .style('padding-top', '7px');
     }
-    addImpektDesc() {
-        this.elImpekt.html('');
-        let singleImpekt = this.graph.impekts[0];
-        if (singleImpekt.descr) {
-            this.elImpekt.append('h4').html("Explanation");
-            this.elImpekt.append('p').html(singleImpekt.descr).attr('class', 'graph-expl-explanation');
-        }
-        if (singleImpekt.descr) {
-            this.elImpekt.append('h4').html("Known exclusions");
-            this.elImpekt.append('p').html(singleImpekt.excl).attr('class', 'graph-expl-exclusions');
-        }
-    }
     toggleAdvanced(show) {
         if (show)
             this.elUI.select('.settings-toggle-main').node().checked = true;
@@ -286,8 +377,9 @@ class UI {
         this.graph.update(true);
     }
     makeTableRowDraggable() {
+        console.log('Start dragable');
         this.elTable
-            .selectAll('tr + tr>td:nth-child(2)').each(function () { d3.select(this); })
+            .selectAll('tr + tr>td:nth-child(3)').each(function () { d3.select(this); })
             .call(d3.drag()
             .on("start", (d, i, arr) => {
             let info = this.elInfo;

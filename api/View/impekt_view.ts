@@ -3,35 +3,149 @@
 // This Typescript is meant for Impekt Viewer 
 
 
+
 function parseURLParams(url: string) {
     let queryStart = url.indexOf("?") + 1,
         queryEnd = url.indexOf("#") + 1 || url.length + 1,
         query = url.slice(queryStart, queryEnd - 1),
         pairs = query.replace(/\+/g, " ").split("&"),
         parms = {}, i, n, v, nv;
+
     if (query === url || query === "") return false;
+
     for (i = 0; i < pairs.length; i++) {
         nv = pairs[i].split("=", 2);
         n = decodeURIComponent(nv[0]);
         v = decodeURIComponent(nv[1]);
+
         if (!parms.hasOwnProperty(n)) parms[n] = [];
         parms[n].push(nv.length === 2 ? v : null);
     }
-    return parms;
-}
 
+    return parms;
+
+}
 function toggleMenu(x) {
     x.parentNode.parentNode.classList.toggle("header-menu-open");
 }
 
 
+
+class UIlink {
+    link: link
+    UI: UI
+    resource: resource;
+    constructor(UI: UI, link:link) {
+        this.UI = UI;
+        this.link = link;
+        this.addToTable();
+        this.addToResource();
+    }
+    
+    addToTable() {
+        if (this.link.link_type == graph.typeOfLink.subimpekt) {
+            let subimpekt = this.link.subimpact;
+            let row = this.UI.elTable.append('tr')
+                .attr('class', 'graph-UI-table-tr graph-UI-table-impact')
+                .attr('title', 'drag me into the formula')
+
+            // Add Dragable
+            row.append('td')
+                .attr('class', 'graph-UI-info-copy')
+                .html(`<span data-type="` + graph.typeOfLink.subimpekt + `" data-name="` + subimpekt.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + subimpekt.short_code_name + `" data-value="` + this.link.link_uid + `">'>` + subimpekt.short_code_name + `</span>`)
+
+
+            // symbol
+            row.append('td')
+                .style('background-image', "url('../img/symbol_impekt.png')")
+                .attr('class', 'symbol')
+                .style('margin', '9px 14px -9px 0px')
+                .attr('title','This is an impekt')
+
+            // title
+            row.append('td')
+                .html(subimpekt.title + ` (` + subimpekt.short_code_name + `)`)
+
+            // Value + Unit
+            row.append('td').attr('colspan', '2')
+                .style('text-align', 'center')
+            .html('-')
+
+            // More Info
+            row.append('td').append('a')
+                .attr('href', '#' + this.link.link_alias)
+                .attr('title', 'More information')
+                .html('Info')
+
+            // Nothing in Contollers
+            row.append('td')
+                .style('text-align', 'center')
+                .html('-')
+
+        }
+        if (this.link.link_type == graph.typeOfLink.variable) {
+            // Add variables to table
+            let row = this.UI.elTable.append('tr')
+                .attr('class', 'graph-UI-table-tr graph-UI-table-variable')
+                .attr('title', 'drag me into the formula')
+
+            // Add Dragable
+            row.append('td')
+                .attr('class', 'graph-UI-info-copy')
+                .html(`<span data-type="` + this.link.variable.type + `" data-name="` + this.link.variable.short_code_name + `" data-drop='<hr class="graph-UI-input-tags" data-alias="` + this.link.variable.short_code_name + `" data-value="` + this.link.link_uid + `">'>` + this.link.variable.short_code_name + `</span>`)
+
+            // symbol
+            row.append('td')
+                .style('background-image', "url('../img/symbol_variabele.png')")
+                .attr('class', 'symbol')
+                .style('margin', '9px 14px -9px 0px')
+                .attr('title','This is a variable')
+
+            // title
+            row.append('td')
+                .html(this.link.variable.title + ` (` + this.link.variable.short_code_name + `)`)
+
+            // Value
+            let update = row.append('td')
+                .style('text-align', 'right')
+                .style('padding-right', '5px')
+                .style('width', '50px')
+                .html(this.link.variable.value.toString())
+
+            // Set in the update Array for onchange events
+            this.link.variable.elUpdate.push(update);
+            // Unit
+            row.append('td')
+                .html(this.link.variable.unit)
+
+            row.append('td').append('a')
+                .attr('href', '#' + this.link.link_alias)
+                .attr('title', 'More information')
+                .html('Info')
+
+            // Add controlers
+            if (this.link.link_advanced) {
+                this.link.variable.addConrollers(row.append('td'), () => {this.UI.graph.update();}) // callback = values on change
+            } else {
+                row.append('td').html('Change above')
+                    .style('text-align', 'center')
+                this.link.variable.addConrollers(this.UI.graph.elControllers, () => {this.UI.graph.update();}) // callback = values on change
+            }
+            
+        }
+    }
+    addToResource() {
+        this.resource = new resource()
+        this.resource.create(this.link, this.UI.elResource, this.UI.elIncl)
+    }
+}
 class resource {
     elResource: d3.Selection<HTMLElement, {}, HTMLElement, any>
     elResourceDiv: d3.Selection<HTMLElement, {}, HTMLElement, any>
     elIncl: d3.Selection<HTMLElement, {}, HTMLElement, any>
     elInclLink: d3.Selection<HTMLElement, {}, HTMLElement, any>
     link_type: graph.typeOfLink
-    id: string 
+    id: string
     alias: string
 
     // On create and delete
@@ -51,37 +165,66 @@ class resource {
             this.id = this.alias
             this.addResourceImpekt(oneLink)
         }
+
+        this.elResourceDiv.append('div').attr('class', 'resource-link_descr').html(oneLink.link_descr)
+
+
         this.addToIcl()
     }
-    remove() {
-        this.elResourceDiv.remove()
-    }
-
-    // On create per type
     addResourceImpekt(oneLink: link) {
         this.elResourceDiv = this.elResource.append('div').attr('id', this.id).attr('class', 'resource resource-sub')
 
-        this.elResourceDiv.append('div').html(oneLink.subimpact.title)
-        this.elResourceDiv.append('div').html(oneLink.subimpact.sub_title)
-        this.elResourceDiv.append('div').html(oneLink.subimpact.long_code_name)
-        this.elResourceDiv.append('div').html(oneLink.subimpact.short_code_name)
-        this.elResourceDiv.append('div').html(oneLink.subimpact.maingroup)
-        this.elResourceDiv.append('div').html(oneLink.subimpact.subgroup)
-        this.elResourceDiv.append('div').html(oneLink.link_descr)
+        this.elResourceDiv.append('div')
+            .style('background-image', "url('../img/symbol_impekt.png')")
+            .attr('class', 'symbol')
+            .style('margin', '2px 0px -2px 0px')
+            .style('position', 'absolute')
+            .style('width', '30px')
+            .style('height', '20px')
+            .attr('title', 'This is an impekt')
+
+        this.elResourceDiv.append('div').attr('class', 'resource-title').html(oneLink.subimpact.title)
+        this.elResourceDiv.append('div').attr('class', 'resource-sub_title').html(oneLink.subimpact.sub_title)
+        this.elResourceDiv.append('span').attr('class', 'resource-long_code_name').html(oneLink.subimpact.long_code_name)
+            .attr('title', 'Long code name')
+        this.elResourceDiv.append('span').attr('class', 'resource-short_code_name').html(oneLink.subimpact.short_code_name)
+            .attr('title', 'Short code name')
+        this.elResourceDiv.append('span').attr('class', 'resource-maingroup').html(oneLink.subimpact.maingroup)
+            .attr('title', 'Group')
+        this.elResourceDiv.append('span').attr('class', 'resource-subgroup').html(oneLink.subimpact.subgroup)
+            .attr('title', 'Sub group')
 
 
 
     }
-
     addResourceVariable(oneLink: link) {
         this.elResourceDiv = this.elResource.append('div').attr('id', this.id).attr('class', 'resource resource-vari')
 
-        this.elResourceDiv.append('div').html(oneLink.variable.title)
-        this.elResourceDiv.append('div').html(oneLink.variable.sub_title)
-        this.elResourceDiv.append('div').html(oneLink.variable.long_code_name)
-        this.elResourceDiv.append('div').html(oneLink.variable.short_code_name)
-        this.elResourceDiv.append('div').html(oneLink.variable.descr)
-        this.elResourceDiv.append('div').html(oneLink.link_descr)
+
+        this.elResourceDiv.append('div')
+            .style('background-image', "url('../img/symbol_variabele.png')")
+            .attr('class', 'symbol')
+            .style('margin', '2px 0px -2px 0px')
+            .style('position', 'absolute')
+            .style('width', '30px')
+            .style('height', '20px')
+            .attr('title', 'This is a variable')
+
+
+
+        this.elResourceDiv.append('div').attr('class', 'resource-title').html(oneLink.variable.title)
+        this.elResourceDiv.append('div').attr('class', 'resource-sub_title').html(oneLink.variable.sub_title)
+        this.elResourceDiv.append('span').attr('class', 'resource-long_code_name').html(oneLink.variable.long_code_name)
+            .attr('title', 'Long code name')
+        this.elResourceDiv.append('span').attr('class', 'resource-short_code_name').html(oneLink.variable.short_code_name)
+            .attr('title', 'Short code name')
+        this.elResourceDiv.append('span').attr('class', 'resource-maingroup').html(oneLink.variable.short_code_name)
+            .attr('title', 'Group')
+    }
+
+    // Delete Resource
+    remove() {
+        this.elResourceDiv.remove()
     }
 
 
@@ -89,24 +232,20 @@ class resource {
     addToIcl() {
         this.elInclLink = this.elIncl
             .append('a')
-            .attr('href',"#" + this.id)
+            .attr('href', "#" + this.id)
             .html(this.alias)
     }
     removeFromIcl() {
         this.elInclLink.remove();
     }
 }
-
-
 class UI {
-
 
 
 
     graph: graph
     title: string = ''
     subtitle: string = ''
-    resources: resource[] = [];
 
     elUI: d3.Selection<HTMLElement, {}, HTMLElement, any>
     elFormula: d3.Selection<HTMLElement, {}, HTMLElement, any>
@@ -122,6 +261,7 @@ class UI {
     timeout: any
 
 
+    UIlinks: UIlink[] = [];
 
 
     constructor(graph) {
@@ -135,44 +275,31 @@ class UI {
         // Including
         this.elResource.append('h4').html("Resources")
         this.elIncl = this.elResource.append('div').attr('class', 'graph-UI-resource-incl')
-
         this.elTitle = d3.select("#page").insert('h1', '.graph-graph').attr('class', 'graph-title')
-
-    }
-
-    // Update UI
+    }     // Does nothing
     update() {
-        this.setTitle();
-        if (this.graph.AmountOfComparison == graph.AmountOfComparison.one) {
 
-            this.addOverviewFormula();
+
+        this.setTitle();
+
+        if (this.graph.AmountOfComparison == graph.AmountOfComparison.one) {
+            this.createNormalFormula();
             this.addAdvanced();
             this.addAdvancedFormula();
-            this.addImpektDesc();
+            this.addMoreInformation();
         }
-        //this.addVariable()
+
 
         // Add links 
         this.graph.impekts.map((impekt) => {
             impekt.links.map((link) => {
-                // Add to table
-                link.addToTable(this.elTable, this.graph.elControllers,
-                    () => {// On change
-                    this.graph.update();
-                    this.makeTableRowDraggable();
-                });
-                // Add to bottom
-                link.addToResource(this.elResource, this.elIncl);
+                // Update Link to UILink
+                this.UIlinks.push(new UIlink(this, link));
+                this.makeTableRowDraggable();
             })
         })
 
-    }
-
-
-
-
-
-    // Get from a change in formula (typing or adding HR-tag)
+    }               // Update UI
     decodeFormula() {
         //this.graph.errors(false);
 
@@ -215,18 +342,17 @@ class UI {
 
         // Update also UI
         if (this.graph.AmountOfComparison == graph.AmountOfComparison.one) {
-            this.addOverviewFormula();
+            this.createNormalFormula();
 
         } else {
             console.log('requested soft data update, but will do a hard one, data changed too much')
             this.update() // Do hard update
         }
-    }
+    }        // Get from a change in formula (typing or adding HR-tag)
 
 
-    ///////////// Add data on build /////////////
+    ///////////// Build interface /////////////
 
-    //Set title
     setTitle() {
         let subtitleString = ''
         if (this.graph.AmountOfComparison == graph.AmountOfComparison.one) {
@@ -243,36 +369,7 @@ class UI {
             .attr('class', 'graph-title')*/
         this.elTitle
             .html('<div id="graph-UI-title-main">' + this.title + '</div>' + subtitleString)
-    }
-    // Add text formula to mainpage
-    addOverviewFormula() {
-        this.elFormula.html('')
-        this.elFormula.append('h4').html('Formula')
-        let singleImpekt = this.graph.impekts[0]
-
-        if (typeof singleImpekt.formula !== "undefined") {
-            // Input JSON formula with name and groups
-            // Outputs a Formula with {<hr>+<hr>}
-            // In the end formula is like a update
-
-
-            // per group in formula
-            for (var k = 0, groups = singleImpekt.formula.length; k < groups; k += 1) {
-                if (k !== 0) { // Skip first but add + sign
-                    this.elFormula.append('div').attr('class', 'sign').html('+').style('display', 'inline-block')
-                }
-                this.elFormula.append('div')
-                    .attr('class', 'graph-UI-info-form graph-form-hr')
-                    .attr('id', 'graph-UI-info-form-' + k)
-                    .attr('title', singleImpekt.formula[k].title)
-                    .html(singleImpekt.formula[k].hr)
-                    .style('border-bottom', ' solid 2px' + color[k])
-                this.resizeAllFormulaBlocks() // Update so the HR are not collapsed
-            }
-        }
-
-    }
-    // Adds advanced folding div
+    }              // Set title
     addAdvanced() {
 
         this.elAdvanced.html('')
@@ -300,13 +397,9 @@ class UI {
 
         // Overview Table
         this.elTable = this.elInfo.append('table')
-        this.elTable.append('tr').html("<th></th><th>Forumla</th><th colspan='2' style='text-align:center;	padding: 5px 20px 5px 0;' >Value</th><th></th><th></th>")
+        this.elTable.append('tr').html("<th><!--Drag--></th><th><!--Symbol--></th><th>Item</th><th colspan='2' style='text-align:center;padding: 5px 20px 5px 0;width:30px;'>Value</th><th></th><th></th>")
 
-        // Add subimpekts to table
-        this.graph.impekts[0].links.filter(e => e.subimpact).map((link) => {
-            //this.addAdvancedSubImpekt(link);
-        })
-        // Variables are added later to the table
+
 
         this.elAdvancedError = this.elInfo.append('div').attr('class', 'graph-UI-info-error')
 
@@ -314,8 +407,51 @@ class UI {
 
 
 
-    }
-    // Adds formula to advanced section
+    }           // Adds advanced folding div
+    createNormalFormula() {
+        this.elFormula.html('')
+        this.elFormula.append('h4').html('Formula')
+        let singleImpekt = this.graph.impekts[0]
+
+        if (typeof singleImpekt.formula !== "undefined") {
+            // Input JSON formula with name and groups
+            // Outputs a Formula with {<hr>+<hr>}
+            // In the end formula is like a update
+
+
+            // per group in formula
+            for (var k = 0, groups = singleImpekt.formula.length; k < groups; k += 1) {
+                if (k !== 0) { // Skip first but add + sign
+                    this.elFormula.append('div').attr('class', 'sign').html('+').style('display', 'inline-block')
+                }
+                this.elFormula.append('div')
+                    .attr('class', 'graph-UI-info-form graph-form-hr')
+                    .attr('id', 'graph-UI-info-form-' + k)
+                    .attr('title', singleImpekt.formula[k].title)
+                    .html(singleImpekt.formula[k].hr)
+                    .style('border-bottom', ' solid 2px' + color[k])
+                this.resizeAllFormulaBlocks() // Update so the HR are not collapsed
+            }
+        }
+
+    }   // Add text formula to mainpage
+    addMoreInformation() {
+        this.elImpekt.html('')
+        // AddExplanation
+        let singleImpekt = this.graph.impekts[0]
+        if (singleImpekt.descr) {
+            this.elImpekt.append('h4').html("Explanation")
+            this.elImpekt.append('p').html(singleImpekt.descr).attr('class', 'graph-expl-explanation')//.attr('data-json', 'jsonData[0].explanation')
+        }
+
+        // Excluding
+        if (singleImpekt.descr) {
+            this.elImpekt.append('h4').html("Known exclusions")
+            this.elImpekt.append('p').html(singleImpekt.excl).attr('class', 'graph-expl-exclusions')//.attr('data-json', 'jsonData[0].excl')
+        }
+    }    // Adds information about impekt
+
+    // Formula //
     addAdvancedFormula() {
 
 
@@ -346,10 +482,9 @@ class UI {
             }
         }
 
-    }
-    // Adds one formula part
+    }                       // Adds formula to advanced section
     addAdvancedFormulaPart(k, title, formula) {
-        console.log(k, title, formula)
+        //console.log(k, title, formula)
         let group = d3.select('.graph-UI-input-block')
             .append('div')
             .attr('class', 'graph-UI-input-group')
@@ -401,7 +536,7 @@ class UI {
 
         this.elAdvancedForm.push(el);
         return group
-    }
+    }  // Adds one formula part
     addAdvancedFormulaPlus() {
         d3.select('.graph-UI-input-block')
             .append('span')
@@ -415,32 +550,9 @@ class UI {
             .style('padding-top', '7px')
 
 
-    }
-
-
-
-    // Adds information about impekt
-    addImpektDesc() {
-        this.elImpekt.html('')
-        // AddExplanation
-        let singleImpekt = this.graph.impekts[0]
-        if (singleImpekt.descr) {
-            this.elImpekt.append('h4').html("Explanation")
-            this.elImpekt.append('p').html(singleImpekt.descr).attr('class', 'graph-expl-explanation')//.attr('data-json', 'jsonData[0].explanation')
-        }
-
-        // Excluding
-        if (singleImpekt.descr) {
-            this.elImpekt.append('h4').html("Known exclusions")
-            this.elImpekt.append('p').html(singleImpekt.excl).attr('class', 'graph-expl-exclusions')//.attr('data-json', 'jsonData[0].excl')
-        }
-    }
-
+    }                   // Adds one formula part
 
     ///////////// Controllers /////////////
-
-
-    //Show or Hide advanced section
     toggleAdvanced(show?: boolean) {
         if (show) (<HTMLInputElement>this.elUI.select('.settings-toggle-main').node()).checked = true
         if ((<HTMLInputElement>this.elUI.select('.settings-toggle-main').node()).checked) {
@@ -448,27 +560,25 @@ class UI {
         } else {
             this.elInfo.style('max-height', '0').transition().duration(500)//.style('margin','0 0 0 0')
         }
-    }
-    // All formulas: make HR blocks right width
+    }             // Show or Hide advanced section
     resizeAllFormulaBlocks() {
         this.elUI.selectAll('.graph-form-hr hr').each((d, i, arr) => {
             let hr = <HTMLHRElement>arr[i]
             hr.style.width = (parseInt(window.getComputedStyle(hr, ':before').width.replace('px', '')) + 1) + 'px'
         })
 
-    }
-    // Advanced formula: Title change
+    }                   // All formulas: make HR blocks right width
     updateFormulaTitle(value, id) {
         this.graph.impekts[0].formula[id].title = value;
 
         this.graph.update(true);
 
-    }
-    // Advanced table: drag&drop
+    }              // Advanced formula: Title change
     makeTableRowDraggable() {
         // Drag and drop function
+        console.log('Start dragable')
         this.elTable
-            .selectAll('tr + tr>td:nth-child(2)').each(function () { d3.select(this) })
+            .selectAll('tr + tr>td:nth-child(3)').each(function () { d3.select(this) })
             .call(d3.drag()
 
                 .on("start", (d, i, arr) => {
@@ -640,8 +750,8 @@ class UI {
                 })// end click-end
 
             ); // end call
-
-    }
+       // 
+    }                    // Advanced table: drag&drop
 }
 
 
