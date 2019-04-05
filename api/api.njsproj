@@ -15,7 +15,8 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>fd93bf36-8869-4e6b-bdfd-9a65f3972c73</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>View\impekt_view.ts</StartupFile>
+    <StartupFile>
+    </StartupFile>
     <StartWebBrowser>True</StartWebBrowser>
     <SearchPath>
     </SearchPath>
@@ -39,19 +40,18 @@
   <ItemGroup>
     <Content Include="edit\impekt_edit.css" />
     <Content Include="edit\impekt_edit.html" />
-    <Content Include="HowMuchDemo\index.html" />
-    <Content Include="HowMuchDemo\tsconfig.json" />
     <Content Include="index.html">
       <SubType>Code</SubType>
     </Content>
     <Content Include="klad.txt" />
+    <Content Include="admin\admin_overview.css" />
+    <Content Include="admin\admin_overview.html" />
     <Content Include="View\impekt_view.css" />
     <Content Include="View\impekt_view.html" />
     <TypeScriptCompile Include="core\impekt_core.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="edit\impekt_edit.ts" />
-    <TypeScriptCompile Include="HowMuchDemo\index.ts" />
     <TypeScriptCompile Include="server.ts" />
     <Content Include="core\impekt_core.html">
       <SubType>Code</SubType>
@@ -62,14 +62,14 @@
     <Content Include="tsconfig.json" />
     <Content Include="package.json" />
     <Content Include="README.md" />
+    <TypeScriptCompile Include="admin\admin_overview.ts" />
     <TypeScriptCompile Include="View\impekt_view.ts" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="core\" />
     <Folder Include="edit\" />
-    <Folder Include="API\" />
-    <Folder Include="HowMuchDemo\" />
     <Folder Include="img\" />
+    <Folder Include="admin\" />
     <Folder Include="View\" />
   </ItemGroup>
   <!-- Do not delete the following Import Project.  While this appears to do nothing it is a marker for setting TypeScript properties before our import that depends on them. -->

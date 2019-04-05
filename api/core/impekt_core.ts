@@ -1311,6 +1311,7 @@ class impekt implements Iimpekt {
                         }
                         else if (xhr.status == 200) {
                             console.error(xhr.responseText)
+
                             return reject('Internal Error')
                         }
                         else if (xhr.status == 0) {
