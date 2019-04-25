@@ -211,7 +211,7 @@ class editUI extends UI {
         // Adds add button for new Links
         this.buttonNewLink(this.elTable)
 
-
+        this.rawdataBlock()
 
         this.elInfo.selectAll('.graph-UI-input-group').each((d, i, arr) => {
             this.buttonRemoveFormula(arr[i])
@@ -224,6 +224,7 @@ class editUI extends UI {
         //this.overlayerNewLink()
         //d3.selectAll(".newItem-input-div-vari .newItem-input").dispatch('keyup');
     }                     // Start in promise of graph (not in contructor)
+
     addExtraCodes() {
         d3.selectAll('#graph-UI-extras').remove()
         let titleDiv = d3.select('.graph-title').append('div').attr('id', 'graph-UI-extras')
@@ -236,7 +237,6 @@ class editUI extends UI {
         titleDiv.append('div').attr('id', 'graph-UI-id').html(this.graph.impekts[0].impact_id.toString())
     }                 // Add title edits
 
-    
     removeLink(row) {
         let span = row.select('td span');
         let short_code_name = span.attr('data-name')
@@ -262,8 +262,6 @@ class editUI extends UI {
         this.graph.updateFormula(this.graph.impekts[0].formula)
     }                 // Advanced table edits
 
-
-   
     buttonNewFormula() {
         //remove previous
         d3.select(".UI-edit-add-fomrula-part").remove()
@@ -279,6 +277,7 @@ class editUI extends UI {
         })
         this.graph.impekts[0].formula.push({ technical: '', title: newTitle })
     }               // Adds button to create new formula block
+
     buttonRemoveFormula(element) {
         new confirmButton(d3.select(element), 'x', "UI-edit-delete", "delete", () => {
             let k = parseInt(d3.select(element).attr('data-part'))
@@ -290,7 +289,23 @@ class editUI extends UI {
         })
     }
 
+    rawdataBlock() {
+        let block = this.elUI.append('div').attr('class', 'graph-raw')
+        block.append('h4').html("Raw Data")
+        let groups = block.append('div').attr('class', 'graph-raw-group').attr('id', 'raw-q2')
 
+        // create all input fields
+        for (let item in graph.fields) {
+            if (isNaN(Number(item))) {
+                let field = groups.append('div').attr('class', 'graph-raw-field')
+                field.append('label').html(item).append('input').attr('class', 'graph-raw-input').attr('id', 'raw-'+item)
+            }
+        }
+        //this.graph.impekts[0].impactdata.map((e) => {
+        //    console.log('E',e)
+        //})
+        
+    }
 
     ///////////// Links /////////////
     buttonNewLink(elTable) {

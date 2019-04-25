@@ -716,6 +716,11 @@ span.UI-edit-auto {
     opacity: 0.7;
 }
 
+.graph-raw {
+    border-top: 1px solid #bbb;
+    margin-top: 120px;
+    padding-top: 30px;
+}
 
 
 /* END New Links END*/

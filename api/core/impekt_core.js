@@ -79,7 +79,7 @@ class toggleVariable {
     createHTML() {
         let uniqueName = this.id + "_" + this.alias1 + "_" + this.alias2;
         this.el = this.parentNode.append('div')
-            .attr('class', 'graph-buttons-switch').attr('title', uniqueName);
+            .attr('class', 'graph-buttons-switch').attr('title', uniqueName).attr('id', uniqueName);
         this.el.append('input')
             .attr('class', 'graph-buttons-switch-input')
             .attr('type', 'radio')
@@ -353,7 +353,6 @@ class graph {
         }
         catch (e) {
             this.usedFields.push('co2');
-            this.usedFields.push('energy');
             console.warn('No data here, standard aspects of impekt');
         }
         this.usedFields = this.usedFields.filter((item, pos) => this.usedFields.indexOf(item) == pos);
@@ -371,7 +370,7 @@ class graph {
         let fullwidth = svgNode.getBoundingClientRect().width;
         let fullheight = svgNode.getBoundingClientRect().height;
         this.width = fullwidth - settings.margin.left - settings.margin.right;
-        this.height = (this.n > 1) ? this.n * 60 : 300;
+        this.height = (this.n > 0) ? this.n * 60 : 300;
         let svgHeight = this.height + settings.margin.bottom + settings.margin.top;
         this.svg.attr("width", fullwidth).attr("height", svgHeight);
         this.mainGroup.attr("transform", "translate(" + settings.margin.left + "," + settings.margin.top + ")");
@@ -727,6 +726,13 @@ class graph {
         typeOfVariable[typeOfVariable["internalSimpleAdvanced"] = 3] = "internalSimpleAdvanced";
         typeOfVariable[typeOfVariable["picklist"] = 4] = "picklist";
     })(typeOfVariable = graph.typeOfVariable || (graph.typeOfVariable = {}));
+    let fields;
+    (function (fields) {
+        fields[fields["co2"] = 0] = "co2";
+        fields[fields["energy"] = 1] = "energy";
+        fields[fields["polution"] = 2] = "polution";
+        fields[fields["water"] = 3] = "water";
+    })(fields = graph.fields || (graph.fields = {}));
 })(graph || (graph = {}));
 class impekt {
     constructor(uid) {

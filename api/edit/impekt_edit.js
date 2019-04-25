@@ -128,6 +128,7 @@ class editUI extends UI {
             });
         });
         this.buttonNewLink(this.elTable);
+        this.rawdataBlock();
         this.elInfo.selectAll('.graph-UI-input-group').each((d, i, arr) => {
             this.buttonRemoveFormula(arr[i]);
         });
@@ -187,6 +188,17 @@ class editUI extends UI {
             this.update();
             this.startEdit();
         });
+    }
+    rawdataBlock() {
+        let block = this.elUI.append('div').attr('class', 'graph-raw');
+        block.append('h4').html("Raw Data");
+        let groups = block.append('div').attr('class', 'graph-raw-group').attr('id', 'raw-q2');
+        for (let item in graph.fields) {
+            if (isNaN(Number(item))) {
+                let field = groups.append('div').attr('class', 'graph-raw-field');
+                field.append('label').html(item).append('input').attr('class', 'graph-raw-input').attr('id', 'raw-' + item);
+            }
+        }
     }
     buttonNewLink(elTable) {
         let addRow = elTable.append('tr').style('cursor', 'ititial').attr('class', "UI-edit-row");

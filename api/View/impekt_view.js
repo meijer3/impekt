@@ -179,11 +179,13 @@ class UI {
     }
     update() {
         this.setTitle();
+        this.setSimplifiedMode(false);
         if (this.graph.AmountOfComparison == graph.AmountOfComparison.one) {
             this.createNormalFormula();
             this.addAdvanced();
             this.addAdvancedFormula();
             this.addMoreInformation();
+            this.modeSimplified();
         }
         this.graph.impekts.map((impekt) => {
             impekt.links.map((link) => {
@@ -288,6 +290,17 @@ class UI {
             this.elImpekt.append('h4').html("Known exclusions");
             this.elImpekt.append('p').html(singleImpekt.excl).attr('class', 'graph-expl-exclusions');
         }
+    }
+    setSimplifiedMode(changed) {
+        this.simplified = false;
+        if (changed) {
+            this.simplified = d3.select('#simpleMode').property('checked');
+        }
+        else {
+            this.simplified = false;
+            d3.select('#simpleMode').property('checked', false);
+        }
+        d3.select('body').classed('simplified', this.simplified);
     }
     addAdvancedFormula() {
         let singleImpekt = this.graph.impekts[0];
@@ -469,6 +482,9 @@ class UI {
             }
             inputBars.map(function (d, e, i) { d3.select(this).style('min-height', '').transition().duration(500).style('padding', ''); });
         }));
+    }
+    modeSimplified() {
+        d3.select('#simpleMode').on('change', () => { this.setSimplifiedMode(true); });
     }
 }
 window.onload = () => {

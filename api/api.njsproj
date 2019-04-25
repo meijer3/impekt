@@ -40,19 +40,22 @@
   <ItemGroup>
     <Content Include="edit\impekt_edit.css" />
     <Content Include="edit\impekt_edit.html" />
-    <Content Include="HowMuchDemo\index.html" />
-    <Content Include="HowMuchDemo\tsconfig.json" />
     <Content Include="index.html">
       <SubType>Code</SubType>
     </Content>
     <Content Include="klad.txt" />
+    <Content Include="sliders\sliders.css">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="sliders\sliders.html">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="View\impekt_view.css" />
     <Content Include="View\impekt_view.html" />
     <TypeScriptCompile Include="core\impekt_core.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>
     <TypeScriptCompile Include="edit\impekt_edit.ts" />
-    <TypeScriptCompile Include="HowMuchDemo\index.ts" />
     <TypeScriptCompile Include="server.ts" />
     <Content Include="core\impekt_core.html">
       <SubType>Code</SubType>
@@ -64,12 +67,17 @@
     <Content Include="package.json" />
     <Content Include="README.md" />
     <TypeScriptCompile Include="admin\admin_overview.ts" />
+    <TypeScriptCompile Include="sliders\sliders.ts">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
     <TypeScriptCompile Include="View\impekt_view.ts" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="admin\" />
     <Folder Include="core\" />
     <Folder Include="edit\" />
     <Folder Include="img\" />
+    <Folder Include="sliders\" />
     <Folder Include="View\" />
   </ItemGroup>
   <!-- Do not delete the following Import Project.  While this appears to do nothing it is a marker for setting TypeScript properties before our import that depends on them. -->

@@ -18,7 +18,7 @@
 
 
 ///////////// Others /////////////
-function PrettyNumber(num, number?: boolean): string|number {
+function PrettyNumber(num, number?: boolean): string | number {
     let significance: number = 3
     let strlen: number
     let clean: number
@@ -38,17 +38,19 @@ function PrettyNumber(num, number?: boolean): string|number {
         clean = Math.pow(10, strlen - significance + 1) 	// -1 
         RNum = parseInt((num / clean).toFixed(1)) * clean			// +1
 
-        return (number) ? RNum: RNum.toLocaleString('fr-EG');
+        return (number) ? RNum : RNum.toLocaleString('fr-EG');
     }
     else { // between 0 and 1 (starting with 0.)
         num = num.toFixed(100)
         clean = Math.abs(Math.floor(Math.log10(num)))
         RNum = (num + '').substring(0, clean + significance + 1)
 
-        return (number) ? RNum :  RNum.substring(0, 4) + " " + RNum.substring(4).replace(/(.{3})/g, "$1");
+        return (number) ? RNum : RNum.substring(0, 4) + " " + RNum.substring(4).replace(/(.{3})/g, "$1");
     }
 
 }
+
+
 class tooltip {
     select: d3.Selection<HTMLElement, {}, HTMLElement, any>
     x: number
@@ -166,7 +168,7 @@ class toggleVariable {
 
 
         this.el = this.parentNode.append('div')
-            .attr('class', 'graph-buttons-switch').attr('title', uniqueName)
+            .attr('class', 'graph-buttons-switch').attr('title', uniqueName).attr('id', uniqueName)
 
 
         this.el.append('input')
@@ -466,7 +468,7 @@ class variable {
     // Add classes and update
     addSlider(elControllers, callback) {
 
-        let newslider = new sliderVariable(this.min, this.max,this.step, this.value, this.short_code_name, this.unit, elControllers)
+        let newslider = new sliderVariable(this.min, this.max, this.step, this.value, this.short_code_name, this.unit, elControllers)
         newslider.elUpdate = this.elUpdate;
         // on change do this
         newslider.activate((amount) => {
@@ -682,7 +684,7 @@ class graph {
         }
         catch (e) {
             this.usedFields.push('co2')
-            this.usedFields.push('energy')
+            //this.usedFields.push('energy')
             console.warn('No data here, standard aspects of impekt')
         }
 
@@ -711,7 +713,7 @@ class graph {
 
         // Resize
         this.width = fullwidth - settings.margin.left - settings.margin.right
-        this.height = (this.n > 1) ? this.n * 60 : 300;
+        this.height = (this.n > 0) ? this.n * 60 : 300;
 
         let svgHeight = this.height + settings.margin.bottom + settings.margin.top
 
@@ -1181,7 +1183,12 @@ module graph {
         internalSimpleAdvanced,
         picklist
     }
-
+    export enum fields {
+        co2
+        , energy
+        , polution
+        , water
+    }
 
 
 }

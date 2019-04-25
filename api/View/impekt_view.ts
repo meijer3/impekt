@@ -25,11 +25,10 @@ function parseURLParams(url: string) {
     return parms;
 
 }
+
 function toggleMenu(x) {
     x.parentNode.parentNode.classList.toggle("header-menu-open");
 }
-
-
 
 class UIlink {
     link: link
@@ -259,6 +258,7 @@ class UI {
     elTitle: d3.Selection<HTMLElement, {}, HTMLElement, any>
     elIncl: d3.Selection<HTMLElement, { }, HTMLElement, any >
     timeout: any
+    simplified: boolean
 
 
     UIlinks: UIlink[] = [];
@@ -281,12 +281,13 @@ class UI {
 
 
         this.setTitle();
-
+        this.setSimplifiedMode(false);       // Set default mode: Simplified || Technical
         if (this.graph.AmountOfComparison == graph.AmountOfComparison.one) {
             this.createNormalFormula();
             this.addAdvanced();
             this.addAdvancedFormula();
             this.addMoreInformation();
+            this.modeSimplified();
         }
 
 
@@ -450,6 +451,19 @@ class UI {
             this.elImpekt.append('p').html(singleImpekt.excl).attr('class', 'graph-expl-exclusions')//.attr('data-json', 'jsonData[0].excl')
         }
     }    // Adds information about impekt
+    setSimplifiedMode(changed) {
+
+        this.simplified = false
+        if (changed) {
+            this.simplified = d3.select('#simpleMode').property('checked')
+        }
+        else {
+            this.simplified = false
+            d3.select('#simpleMode').property('checked', false)
+        }
+        d3.select('body').classed('simplified', this.simplified)
+
+    }
 
     // Formula //
     addAdvancedFormula() {
@@ -752,6 +766,9 @@ class UI {
             ); // end call
        // 
     }                    // Advanced table: drag&drop
+    modeSimplified() {
+        d3.select('#simpleMode').on('change', () => { this.setSimplifiedMode(true)})
+    }                           // Advanced table: Simplified
 }
 
 
